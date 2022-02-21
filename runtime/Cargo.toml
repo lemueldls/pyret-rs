@@ -1,0 +1,25 @@
+[package]
+edition = "2021"
+name = "pyret_runtime"
+version = "0.1.0"
+
+[features]
+default = ["color"]
+
+color = ["swc_common/tty-emitter"]
+
+[dependencies]
+anyhow = "1.0.43"
+const_format = "0.2.19"
+fancy-regex = "0.7.1"
+once_cell = "1.8.0"
+
+swc = "0.130.0"
+swc_bundler = "0.108.0"
+swc_common = { version = "0.17.5" }
+swc_ecmascript = { version = "0.115.0", features = [
+  "codegen",
+  "parser",
+  "transforms",
+  "visit",
+] }

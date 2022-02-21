@@ -1,0 +1,10 @@
+[workspace]
+exclude = ["web/pyret"]
+members = ["cli", "lexer", "runtime", "transpiler", "wasm"]
+
+[profile.release]
+codegen-units = 1
+lto = true
+
+[profile.release.package."*"]
+codegen-units = 1

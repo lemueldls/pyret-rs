@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "strict": true,
+
+    "target": "es2020",
+    "module": "esnext",
+
+    "baseUrl": ".",
+    "paths": {
+      "base:/*": ["base/*"],
+      "builtin:/*": ["trove/*"]
+    },
+
+    "noImplicitAny": true,
+    "noImplicitOverride": true,
+    "strictNullChecks": true,
+    "forceConsistentCasingInFileNames": true,
+    "exactOptionalPropertyTypes": true
+  }
+}
