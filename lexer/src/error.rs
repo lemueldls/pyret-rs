@@ -8,6 +8,7 @@ pub enum CompileError {
     DidNotUnderstand,
     EmptyBlock,
     UnmatchedOpeningComment,
+    // TODO: Use this without the false positive of pipes
     UnmatchedClosingComment,
     UnfinishedString,
     MissingComma,

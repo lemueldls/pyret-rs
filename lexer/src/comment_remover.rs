@@ -4,22 +4,22 @@ use crate::error::*;
 pub struct CommentRemover {
     location: String,
     full_code: String,
-    input: String,
+    code: String,
     position: usize,
 }
 
 impl CommentRemover {
-    pub fn new(location: String, input: String) -> Self {
+    pub fn new(location: String, code: String) -> Self {
         Self {
             location,
-            full_code: input.clone(),
-            input,
+            full_code: code.clone(),
+            code,
             position: 0,
         }
     }
 
     pub fn remove(&mut self) -> Result<String> {
-        let code = self.input.to_owned();
+        let code = self.code.to_owned();
 
         let rest = self.rest();
 
@@ -31,8 +31,6 @@ impl CommentRemover {
                 } else {
                     self.remove_line_comment(rest);
                 }
-            } else if rest.starts_with("|#") {
-                self.throw(CompileError::UnmatchedClosingComment)?
             } else {
                 // Lazy boolean operations to skip inside strings.
                 let _ = self.skip_string("\"") || self.skip_string("'") || self.skip_string("```");
@@ -45,46 +43,55 @@ impl CommentRemover {
             }
         }
 
-        Ok(self.input.to_owned())
+        Ok(self.code.to_owned())
     }
 
     fn rest(&self) -> String {
-        self.input[self.position..].to_owned()
+        self.code[self.position..].to_owned()
     }
 
     fn remove_block_comment(&mut self, comment: String) -> Result<()> {
-        // Find the nearest closing block comment.
-        if let Some(closing) = comment.find("|#") {
-            let comment = {
-                // List the positions of every closing block comment in the code after this opening comment.
-                let closing_comments: Vec<(usize, &str)> = comment.match_indices("|#").collect();
+        let length = comment.len();
 
-                // Get the string from this opening comment to the next closing block comment.
-                let to_next_closing = &comment[..closing];
+        // Depth of nested block comments.
+        let mut nesting_depth = 1;
+        // Used to find where to end the block comment.
+        let mut position = 2;
 
-                // Amount of nested block comments by counting the opening block comments inside this current one.
-                let nested_comments = to_next_closing.matches("#|").count() - 1;
+        // While there are block comments, and we haven't reached the end...
+        while nesting_depth > 0 && position < length {
+            // Check if the block comment doesn't end too soon.
+            if let Some(next) = comment.get(position..position + 2) {
+                // Increase the position for the next iteration.
+                position += match next {
+                    // Nested opening block comment.
+                    "#|" => {
+                        nesting_depth += 1;
+                        2
+                    }
+                    // Closing block comment.
+                    "|#" => {
+                        nesting_depth -= 1;
+                        2
+                    }
+                    _ => 1,
+                }
+            } else {
+                self.throw(CompileError::UnmatchedOpeningComment)?
+            }
+        }
 
-                // Position of the closing block comment that matches this current comment.
-                let closing = if let Some((index, _)) = closing_comments.get(nested_comments) {
-                    index
-                } else {
-                    self.position += to_next_closing.rfind("#|").unwrap();
-
-                    self.throw(CompileError::UnmatchedOpeningComment)?
-                };
-
-                // Get the string to the closing block that matches this current one.
-                &comment[..closing + 2]
-            };
+        // Make sure there aren't any unmatched block comments.
+        if nesting_depth == 0 {
+            let comment = &comment[..position];
 
             // A list of spaces, used to also keep newlines.
             let spaces: Vec<String> = comment.split('\n').map(|s| " ".repeat(s.len())).collect();
 
             // Replace block comment with spaces.
-            self.input = format!(
+            self.code = format!(
                 "{}{}{}",
-                &self.input[..self.position],
+                &self.code[..self.position],
                 spaces.join("\n"),
                 &self.rest()[comment.len()..]
             );
@@ -93,6 +100,21 @@ impl CommentRemover {
         } else {
             self.throw(CompileError::UnmatchedOpeningComment)
         }
+    }
+
+    fn remove_line_comment(&mut self, comment: String) {
+        // List of the following lines of code.
+        let lines: Vec<&str> = comment.split('\n').collect();
+        // Length of the current line of code, which is a comment.
+        let length = lines[0].len();
+
+        // Replace comment with spaces.
+        self.code = format!(
+            "{}{}{}",
+            &self.code[..self.position],
+            " ".repeat(length),
+            &self.rest()[length..]
+        );
     }
 
     fn throw<E>(&self, error: CompileError) -> Result<E> {
@@ -121,21 +143,6 @@ impl CommentRemover {
             from,
             to,
         })
-    }
-
-    fn remove_line_comment(&mut self, comment: String) {
-        // List of the following lines of code.
-        let lines: Vec<&str> = comment.split('\n').collect();
-        // Length of the current line of code, which is a comment.
-        let length = lines[0].len();
-
-        // Replace comment with spaces.
-        self.input = format!(
-            "{}{}{}",
-            &self.input[..self.position],
-            " ".repeat(length),
-            &self.rest()[length..]
-        );
     }
 
     // Returns true if a string has been skipped.
