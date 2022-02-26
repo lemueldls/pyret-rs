@@ -1,6 +1,5 @@
 [workspace]
-exclude = ["web/pyret"]
-members = ["cli", "lexer", "runtime", "transpiler", "wasm"]
+members = ["crates/*"]
 
 [profile.release]
 codegen-units = 1
