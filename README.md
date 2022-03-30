@@ -9,13 +9,13 @@
 - Priority
   - Rewrite a better lexer
   - Bootstrapping
+- Internal
+  - [ ] Unit Testing
 - Language
-  - [ ] Statically typed errors
+  - [ ] Static type checking
   - [ ] Throw errors in JS context
 - Expandability
   - [ ] Sourcemaps
   - [ ] Code coverage for Pyret
   - [ ] JIT compiler
   - [ ] Transpile to TypeScript
-- Internal
-  - [ ] Unit Testing
