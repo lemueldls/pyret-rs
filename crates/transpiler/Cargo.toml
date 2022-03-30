@@ -1,11 +1,11 @@
 [package]
 edition = "2021"
-name = "pyret_transpiler"
+name = "pyret-transpiler"
 version = "0.1.0"
 
 [features]
-color = ["pyret_lexer/color", "pyret_runtime/color"]
+color = ["pyret-lexer/color", "pyret-runtime/color"]
 
 [dependencies]
-pyret_lexer = { path = "../lexer" }
-pyret_runtime = { path = "../runtime" }
+pyret-lexer = { path = "../lexer" }
+pyret-runtime = { path = "../runtime" }

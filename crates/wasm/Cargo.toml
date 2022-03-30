@@ -1,6 +1,6 @@
 [package]
 edition = "2021"
-name = "pyret_wasm"
+name = "pyret-wasm"
 version = "0.1.0"
 
 [lib]
@@ -18,7 +18,7 @@ wasm-bindgen = "0.2.63"
 # code size when deploying.
 console_error_panic_hook = { version = "0.1.6", optional = true }
 
-pyret_transpiler = { path = "../transpiler" }
+pyret-transpiler = { path = "../transpiler" }
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.13"
