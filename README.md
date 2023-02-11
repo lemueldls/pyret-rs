@@ -5,7 +5,7 @@
 ## TODO
 
 - Priority
-  - [ ] Finish implementing the spec
+  - [ ] Finish the specs (see [`crates/lexer`](crates/lexer))
 - Internal
   - [ ] Unit testing
 - Language
