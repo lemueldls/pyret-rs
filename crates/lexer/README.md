@@ -1,7 +1,5 @@
 # pyret-lexer
 
-> Currently in a complete rewrite
-
 ## TODO
 
 - [ ] [Language Constructs](https://www.pyret.org/docs/horizon/s_forms.html)
@@ -9,14 +7,14 @@
     - [x] [Names](https://www.pyret.org/docs/horizon/s_literals.html#%28part._.Names%29)
     - [x] [String Literals](https://www.pyret.org/docs/horizon/s_literals.html#%28part._.String_.Literals%29)
     - [x] [Number Literals](https://www.pyret.org/docs/horizon/s_literals.html#%28part._f~3anumber_literals%29)
-    - [ ] [Boolean Literals](https://www.pyret.org/docs/horizon/s_literals.html#%28part._.Boolean_.Literals%29)
-  - [x] [Comments](https://www.pyret.org/docs/horizon/s_comments.html)
+    - [x] [Boolean Literals](https://www.pyret.org/docs/horizon/s_literals.html#%28part._.Boolean_.Literals%29)
+  - [ ] [Comments](https://www.pyret.org/docs/horizon/s_comments.html)
   - [ ] [Programs](https://www.pyret.org/docs/horizon/s_program.html)
   - [ ] [Import Statements](https://www.pyret.org/docs/horizon/Import_Statements.html)
   - [ ] [Provide Statements](https://www.pyret.org/docs/horizon/Provide_Statements.html)
   - [ ] [Bindings](https://www.pyret.org/docs/horizon/Bindings.html)
     - [x] [Name bindings](https://www.pyret.org/docs/horizon/Bindings.html#%28part._.Name_bindings%29)
-    - [x] [Annotated bindings](https://www.pyret.org/docs/horizon/Bindings.html#%28part._s~3aannotated-binding%29)
+    - [ ] [Annotated bindings](https://www.pyret.org/docs/horizon/Bindings.html#%28part._s~3aannotated-binding%29)
     - [ ] [Shadowing](https://www.pyret.org/docs/horizon/Bindings.html#%28part._s~3ashadowing%29)
     - [ ] [Tuple bindings](https://www.pyret.org/docs/horizon/Bindings.html#%28part._.Tuple_bindings%29)
   - [ ] [Blocks](https://www.pyret.org/docs/horizon/Blocks.html)

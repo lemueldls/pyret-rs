@@ -1,14 +1,22 @@
 [package]
 edition = "2021"
 name = "pyret-lexer"
-version = "0.1.0"
+version = "0.0.0"
 
 [features]
-color = ["ansi_term"]
+default = ["comments", "fancy"]
+
+comments = []
+fancy = ["pyret-error/fancy"]
 
 [dependencies]
-const_format = "0.2.19"
-fancy-regex = "0.8.0"
-once_cell = "1.8.0"
+pyret-error = { path = "../error" }
+pyret-lexer-macros = { path = "macros" }
+pyret-number = { path = "../number" }
 
-ansi_term = { version = "0.12.1", optional = true }
+[dev-dependencies]
+criterion = "0.4.0"
+
+[[bench]]
+harness = false
+name = "lex"

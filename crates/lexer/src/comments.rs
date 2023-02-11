@@ -1,25 +1,33 @@
-use crate::error::*;
+#[cfg(feature = "comments")]
+use crate::ast::{Comment, CommentKind};
+use crate::{ErrorKind, Result};
 
 /// Strips out comments and replaces them with spaces.
-pub struct CommentRemover {
-    location: String,
-    full_code: String,
-    code: String,
+pub struct CommentParser {
+    input: String,
     position: usize,
+    #[cfg(feature = "comments")]
+    pub comments: Vec<Comment>,
 }
 
-impl CommentRemover {
-    pub fn new(location: String, code: String) -> Self {
+impl CommentParser {
+    #[must_use]
+    #[inline]
+    pub const fn new(input: String) -> Self {
         Self {
-            location,
-            full_code: code.clone(),
-            code,
+            input,
             position: 0,
+            #[cfg(feature = "comments")]
+            comments: Vec::new(),
         }
     }
 
-    pub fn remove(&mut self) -> Result<String> {
-        let code = self.code.to_owned();
+    /// # Errors
+    ///
+    /// Will return an [`Error`] if there is an error parsing the comments.
+    #[inline]
+    pub fn parse(&mut self) -> PyretResult<String> {
+        let code = self.input.clone();
 
         let rest = self.rest();
 
@@ -27,34 +35,34 @@ impl CommentRemover {
         if let Some(next) = chars.next() {
             if next == '#' {
                 if chars.next() == Some('|') {
-                    self.remove_block_comment(rest)?;
+                    self.take_block(&rest)?;
                 } else {
-                    self.remove_line_comment(rest);
+                    self.take_line(&rest);
                 }
             } else {
                 // Lazy boolean operations to skip inside strings.
                 let _ = self.skip_string("\"") || self.skip_string("'") || self.skip_string("```");
             }
 
-            if self.position < code.chars().count() {
+            if self.position < code.len() {
                 self.position += 1;
 
-                self.remove()?;
+                self.parse()?;
             }
         }
 
-        Ok(self.code.to_owned())
+        Ok(self.input.clone())
     }
 
     fn rest(&self) -> String {
-        self.code[self.position..].to_owned()
+        self.input[self.position..].to_owned()
     }
 
-    fn remove_block_comment(&mut self, comment: String) -> Result<()> {
+    fn take_block(&mut self, comment: &str) -> Result<()> {
         let length = comment.len();
 
-        // Depth of nested block comments.
-        let mut nesting_depth = 1;
+        // Count the depth of nested block comments.
+        let mut nesting_depth = 1_usize;
         // Used to find where to end the block comment.
         let mut position = 2;
 
@@ -77,7 +85,7 @@ impl CommentRemover {
                     _ => 1,
                 }
             } else {
-                self.throw(CompileError::UnmatchedOpeningComment)?
+                self.throw()?;
             }
         }
 
@@ -85,63 +93,57 @@ impl CommentRemover {
         if nesting_depth == 0 {
             let comment = &comment[..position];
 
+            let length = comment.len();
+
+            #[cfg(feature = "comments")]
+            self.comments.push(Comment {
+                // span: self.position..self.position + length,
+                kind: CommentKind::Block,
+                text: comment[2..length - 2].to_owned(),
+            });
+
             // A list of spaces, used to also keep newlines.
-            let spaces: Vec<String> = comment.split('\n').map(|s| " ".repeat(s.len())).collect();
+            let spaces: Box<[str]> = comment.lines().map(|s| " ".repeat(s.len())).collect();
 
             // Replace block comment with spaces.
-            self.code = format!(
+            self.input = format!(
                 "{}{}{}",
-                &self.code[..self.position],
+                &self.input[..self.position],
                 spaces.join("\n"),
-                &self.rest()[comment.len()..]
+                &self.rest()[length..]
             );
 
             Ok(())
         } else {
-            self.throw(CompileError::UnmatchedOpeningComment)
+            self.throw()?
         }
     }
 
-    fn remove_line_comment(&mut self, comment: String) {
-        // List of the following lines of code.
-        let lines: Vec<&str> = comment.split('\n').collect();
-        // Length of the current line of code, which is a comment.
-        let length = lines[0].len();
+    fn take_line(&mut self, comment: &str) {
+        let line = comment.lines().next().expect("Could not get line");
+
+        // Length of the current line comment.
+        let length = line.len();
+
+        #[cfg(feature = "comments")]
+        self.comments.push(Comment {
+            // span: self.position..self.position + length,
+            kind: CommentKind::Line,
+            text: line[1..].to_string(),
+        });
 
         // Replace comment with spaces.
-        self.code = format!(
+        self.input = format!(
             "{}{}{}",
-            &self.code[..self.position],
+            &self.input[..self.position],
             " ".repeat(length),
             &self.rest()[length..]
         );
     }
 
-    fn throw<E>(&self, error: CompileError) -> Result<E> {
-        let split = self.full_code[..self.position].split('\n');
-
-        let line_number = split.clone().count();
-
-        let code = {
-            let lines: Vec<&str> = self.full_code.split('\n').collect();
-
-            lines[line_number - 1]
-                .split('\n')
-                .map(String::from)
-                .collect()
-        };
-
-        let opening_comment = split.last().unwrap().len() + 1;
-
-        let from = (line_number, opening_comment);
-        let to = (line_number, opening_comment + 1);
-
-        Err(Error {
-            error,
-            filename: self.location.clone(),
-            code,
-            from,
-            to,
+    const fn throw<E>(&self) -> Result<E> {
+        Err(ErrorKind::UnmatchedOpeningComment {
+            position: self.position,
         })
     }
 
@@ -155,9 +157,9 @@ impl CommentRemover {
             if let Some(end) = code[length..].find(pattern) {
                 let skip = length + end;
 
-                let is_not_escaped = code.chars().nth(skip - 1).unwrap() != '\\'
+                let is_not_escaped = code.chars().nth(skip - 1).expect("Expected character before") != '\\'
                     // If the escape is escaped.
-                    || code.chars().nth(skip - 2).unwrap() == '\\';
+                    || code.chars().nth(skip - 2).expect("Expected character before") == '\\';
 
                 if is_not_escaped {
                     self.position += skip;

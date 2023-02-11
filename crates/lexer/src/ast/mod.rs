@@ -1,7 +1,1 @@
-mod decl;
-mod expr;
-mod function;
-mod module;
-mod stmt;
-
-pub use {decl::*, expr::*, function::*, module::*, stmt::*};
+crate::export![leaf, lit, expr, decl, stmt];
