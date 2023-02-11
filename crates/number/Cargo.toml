@@ -1,0 +1,14 @@
+[package]
+edition = "2021"
+name = "pyret-number"
+version = "0.0.0"
+
+[features]
+default = []
+
+serde = ["num-bigint/serde", "num-rational/serde"]
+
+[dependencies]
+num-bigint = "0.4.3"
+num-rational = "0.4.1"
+num-traits = "0.2.15"
