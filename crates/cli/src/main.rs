@@ -1,228 +1,92 @@
-mod bindings;
 mod dir;
-mod error;
-mod inspector;
-mod repl;
-mod runtime;
+mod graph;
+// mod repl;
 
-#[macro_use]
-extern crate clap;
+use std::fs;
 
-use runtime::Runtime;
+use graph::FsGraph;
+use pyret_error::miette;
+use pyret_interpreter::{trove, Interpreter, PyretGraph};
+// use pyret_error::term::{
+//     termcolor::{ColorChoice, StandardStream},
+//     Config,
+// };
 
-use std::{fs, path::PathBuf, sync::mpsc::channel, time::Duration, time::Instant};
+fn main()
+// -> miette::Result<()>
+{
+    // miette::set_hook(Box::new(|_| {}))?;
 
-use pyret_transpiler::Transpiler;
+    let mut graph = FsGraph::new();
 
-use ansi_term::{Color, Style};
-use clap::{Parser, Subcommand};
-use notify::{watcher, DebouncedEvent, RecursiveMode, Watcher};
-use rand::{seq::SliceRandom, thread_rng};
+    let name = fs::canonicalize("what.arr").unwrap();
 
-#[derive(Parser)]
-#[clap(name = "Pyret Rust", version)]
-struct Cli {
-    #[clap(subcommand)]
-    commands: Commands,
-}
+    let file_id = graph.register(&name.to_string_lossy());
 
-#[derive(Subcommand)]
-enum Commands {
-    // Build(BuildCommand),
-    Run(RunCommand),
+    let mut interpreter = Interpreter::new(graph);
 
-    Eval(EvalCommand),
+    interpreter
+        .context
+        .borrow_mut()
+        .io
+        .read_out(Box::new(|value| {
+            println!("{value}");
+        }));
 
-    /// Read Eval Print Loop
-    Repl,
-}
+    interpreter.use_context::<trove::Global>();
 
-// /// Build a Pyret program
-// #[derive(Args)]
-// struct BuildCommand {
-//     /// Program to run
-//     #[clap(value_name = "FILE")]
-//     program: String,
+    // let writer = StandardStream::stderr(ColorChoice::Auto);
+    // let config = Config::default();
 
-//     /// File to compile the output into
-//     #[clap(short, long, value_name = "PATH")]
-//     outfile: Option<String>,
-
-//     /// Transpile code without running it
-//     #[clap(short, long)]
-//     transpile_only: bool,
-
-//     /// Watch for file changes
-//     #[clap(short, long)]
-//     watch: bool,
-// }
-
-/// Run a Pyret program
-#[derive(Args)]
-struct RunCommand {
-    /// Program to run
-    #[clap(value_name = "FILE")]
-    program: String,
-
-    /// File to compile the output into
-    #[clap(short, long, value_name = "PATH")]
-    outfile: Option<String>,
-
-    /// Transpile code without running it
-    #[clap(short, long)]
-    transpile_only: bool,
-
-    /// Watch for file changes
-    #[clap(short, long)]
-    watch: bool,
-}
-
-/// Evaluate Pyret from the command line.
-#[derive(Args)]
-struct EvalCommand {
-    /// Code to evaluate
-    code: String,
-}
-
-fn main() {
-    let cli = Cli::parse();
-
-    match cli.commands {
-        Commands::Run(ref args) => {
-            run(args);
-
-            if args.watch {
-                // Create a channel to receive the events.
-                let (sender, receiver) = channel();
-
-                // Create a watcher object, delivering debounced events.
-                // The notification back-end is selected based on the platform.
-                let mut watcher = watcher(sender, Duration::from_millis(1)).unwrap();
-
-                // Add a path to be watched. All files and directories at that path and
-                // below will be monitored for changes.
-                let path = PathBuf::from(&args.program).canonicalize().unwrap();
-                watcher.watch(path, RecursiveMode::Recursive).unwrap();
-
-                loop {
-                    match receiver.recv() {
-                        Ok(event) => {
-                            if let DebouncedEvent::Write(..) = event {
-                                run(args)
-                            }
-                        }
-                        Err(error) => {
-                            eprintln!("{}\n{error:?}", Color::Red.paint("Error watching program:"))
-                        }
-                    }
-                }
+    // interpreter.interpret("2 + 4").unwrap();
+    match interpreter.interpret(file_id) {
+        Ok(values) => {
+            for value in values.iter() {
+                println!("{value}");
             }
         }
-        Commands::Eval(args) => eval(args),
-        Commands::Repl => repl::start(),
-    }
-}
-
-fn run(args: &RunCommand) {
-    match fs::read_to_string(&args.program) {
-        Ok(code) => {
-            let file = PathBuf::from(&args.program).canonicalize().unwrap();
-
-            let filename = format!("file://{}", file.to_string_lossy());
-
-            let mut transpiler = Transpiler::default();
-
-            let start = Instant::now();
-            let code = transpiler.transpile(filename.clone(), code);
-            let duration = start.elapsed();
-
-            let mut rng = thread_rng();
-
-            match code {
-                Ok(code) => {
-                    // Check if it should write the compiler output into a file
-                    if let Some(path) = &args.outfile {
-                        let path = PathBuf::from(path);
-
-                        // Keep the convention of .jarr file extensions
-                        let extension = "jarr";
-
-                        let outfile = if path.is_dir() {
-                            // If the output is a folder, write a file in that
-                            // directory with the same name, but different extension
-                            path.join(file.file_name().unwrap())
-                                .with_extension(extension)
-                        } else if path.extension().is_some() {
-                            path
-                        } else {
-                            path.with_extension(extension)
-                        };
-
-                        let write = fs::write(outfile, code.clone());
-                        if let Err(err) = write {
-                            eprintln!("{err}");
-                        }
-                    }
-
-                    // Print a nice message when we're not running the file.
-                    if args.transpile_only {
-                        let ok = ["Ahoy", "Arr", "Begad", "Blimey", "Sail ho"];
-
-                        println!(
-                            "{}",
-                            Color::Green.paint(format!(
-                                "\n{}! {}",
-                                ok.choose(&mut rng).unwrap(),
-                                Style::new()
-                                    .bold()
-                                    .paint(format!("Done in {}ms", duration.as_millis()))
-                            ))
-                        );
-                    } else {
-                        execute(filename, code);
-                    }
-                }
-                Err(error) => {
-                    let err = [
-                        "Aaaarrrrgggghhhh",
-                        "Avast ye",
-                        "Blow me down",
-                        "Shiver me timbers",
-                        "Sink me",
-                    ];
-
-                    eprintln!(
-                        "\n{} {}",
-                        Color::Red.paint(format!("{}!", err.choose(&mut rng).unwrap())),
-                        error
-                    );
-                }
-            };
+        Err(errors) => {
+            for error in errors {
+                eprintln!("{:?}", error.into_report(&*interpreter.graph));
+            }
         }
-        Err(..) => eprintln!("{}", Color::Red.paint("Could not read file")),
     }
+
+    // Ok(())
+
+    // repl::start();
 }
 
-fn eval(args: EvalCommand) {
-    let filename = String::from("eval://");
+// use std::fs;
 
-    let code = {
-        let mut transpiler = Transpiler::default();
+// use pyret_lexer::{
+//     error::{ColorChoice, Config, StandardStream},
+//     file::PyretFile,
+//     Lexer,
+// };
 
-        transpiler.transpile(filename.clone(), args.code)
-    };
+// fn main() {
+//     let filename = fs::canonicalize("what.arr").expect("Could not find
+// file");
 
-    match code {
-        Ok(code) => execute(filename, code),
-        Err(err) => eprintln!("{}", err),
-    }
-}
+//     let name = format!("file://{}", filename.to_string_lossy());
+//     let source = fs::read_to_string(filename).expect("Could not read file");
 
-fn execute(filename: String, code: String) {
-    let mut runtime = Runtime::new();
+//     let input = PyretFile::new(name, source);
 
-    let result = runtime.execute_script(&filename, &code);
-    if let Err(error) = result {
-        eprintln!("{error}")
-    };
-}
+//     // let lexer = Lexer::new();
+
+//     match Lexer::lex(input) {
+//         Ok(tokens) => {
+//             dbg!(tokens);
+//         }
+//         Err(errors) => {
+//             let writer = StandardStream::stderr(ColorChoice::Auto);
+//             let config = Config::default();
+
+//             for error in errors {
+//                 error.emit(&writer, &config);
+//             }
+//         }
+//     }
+// }
