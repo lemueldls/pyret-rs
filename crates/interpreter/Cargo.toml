@@ -1,0 +1,14 @@
+[package]
+edition = "2021"
+name = "pyret-interpreter"
+version = "0.0.0"
+
+[features]
+default = ["fancy"]
+
+fancy = ["pyret-lexer/fancy"]
+
+[dependencies]
+pyret-file = { path = "../file" }
+pyret-lexer = { path = "../lexer" }
+pyret-number = { path = "../number" }
