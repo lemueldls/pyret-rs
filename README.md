@@ -1,21 +1,18 @@
-# Pyret
+# pyret-rs
 
 > An implementation of the [Pyret programming language](https://www.pyret.org).
 >
-> _Experimental, everything is subject to change._
+> _Experimental, everything is opinionated and subject to change._
 
 ## TODO
 
 - Priority
-  - Rewrite a better lexer
-  - Bootstrapping
+  - [ ]
 - Internal
-  - [ ] Unit Testing
+  - [ ] Unit testing
 - Language
-  - [ ] Static type checking
-  - [ ] Throw errors in JS context
+  - [ ] Static and runtime type checking
+  - [ ] Implement FFI/language bindings
 - Expandability
-  - [ ] Sourcemaps
   - [ ] Code coverage for Pyret
   - [ ] JIT compiler
-  - [ ] Transpile to TypeScript
