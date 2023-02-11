@@ -19,7 +19,7 @@ fn main()
 
     let mut graph = FsGraph::new();
 
-    let name = fs::canonicalize("what.arr").unwrap();
+    let name = fs::canonicalize("test.arr").unwrap();
 
     let file_id = graph.register(&name.to_string_lossy());
 
@@ -66,7 +66,7 @@ fn main()
 // };
 
 // fn main() {
-//     let filename = fs::canonicalize("what.arr").expect("Could not find
+//     let filename = fs::canonicalize("test.arr").expect("Could not find
 // file");
 
 //     let name = format!("file://{}", filename.to_string_lossy());

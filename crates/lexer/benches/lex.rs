@@ -1,9 +1,10 @@
-use criterion::{criterion_group, criterion_main, Criterion};
-use pyret_lexer::lex;
 use std::fs;
 
+use criterion::{criterion_group, criterion_main, Criterion};
+use pyret_lexer::lex;
+
 pub fn criterion_benchmark(c: &mut Criterion) {
-    let filename = fs::canonicalize("what.arr").unwrap();
+    let filename = fs::canonicalize("../../test.arr").unwrap();
 
     let input = &fs::read_to_string(filename).unwrap();
 

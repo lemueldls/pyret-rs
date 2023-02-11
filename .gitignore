@@ -1,5 +1,4 @@
 .pyret/
-*.arr
 
 pkg/
 
