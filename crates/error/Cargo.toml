@@ -1,0 +1,14 @@
+[package]
+edition = "2021"
+name = "pyret-error"
+version = "0.0.0"
+
+[features]
+default = ["fancy"]
+
+fancy = ["pyret-file/fancy"]
+
+[dependencies]
+line-col = "0.2.1"
+pyret-file = { path = "../file" }
+thiserror = "1.0.38"

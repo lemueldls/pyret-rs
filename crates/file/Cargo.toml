@@ -1,0 +1,12 @@
+[package]
+edition = "2021"
+name = "pyret-file"
+version = "0.0.0"
+
+[features]
+default = []
+
+fancy = ["miette/fancy"]
+
+[dependencies]
+miette = "5.5.0"
