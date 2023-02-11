@@ -1,13 +1,11 @@
 # pyret-rs
 
 > An implementation of the [Pyret programming language](https://www.pyret.org).
->
-> _Experimental, everything is opinionated and subject to change._
 
 ## TODO
 
 - Priority
-  - [ ]
+  - [ ] Finish implementing the spec
 - Internal
   - [ ] Unit testing
 - Language
