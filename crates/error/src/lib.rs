@@ -1,5 +1,4 @@
 mod token;
-mod utils;
 
 use std::ops::Range;
 
@@ -18,6 +17,7 @@ pub struct PyretError {
 }
 
 impl PyretError {
+    #[must_use]
     pub const fn new(kind: PyretErrorKind, file_id: usize) -> Self {
         Self { kind, file_id }
     }
@@ -71,10 +71,9 @@ pub enum PyretErrorKind {
     #[error("Pyret didn't understand the very end of your program")]
     EarlyEnd { position: SourceSpan },
 
-    // #[error("Pyret found an empty block")]
-    // EmptyBlock {
-    //     ident: IdentifierExpression,
-    // },
+    #[error("Pyret found an empty block")]
+    EmptyBlock { ident: SourceSpan },
+
     #[error("Pyret failed to evaluate the object lookup")]
     ExpectedObject { left: SerializedToken },
 
@@ -143,13 +142,3 @@ pub enum PyretErrorKind {
         position: usize,
     },
 }
-
-// impl fmt::Display for PyretErrorKind {
-//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-//         for label in self.labels().unwrap() {
-//             write!(f, "{}", label.label().unwrap())?;
-//         }
-
-//         Ok(())
-//     }
-// }

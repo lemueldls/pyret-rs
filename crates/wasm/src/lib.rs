@@ -2,7 +2,7 @@
 
 use std::rc::Rc;
 
-use js_sys::{Array, Function};
+use js_sys::Function;
 use pyret_interpreter::{trove, value::PyretValue, Interpreter, PyretGraph};
 use pyret_number::{BigRational, PyretNumber};
 use serde::{Deserialize, Serialize};
@@ -31,11 +31,11 @@ pub struct PyretRuntime {
 struct PyretGraphWrapper;
 
 impl PyretGraph for PyretGraphWrapper {
-    fn register(&mut self, name: &str) -> usize {
+    fn register(&mut self, _name: &str) -> usize {
         todo!()
     }
 
-    fn get(&self, file_id: usize) -> &pyret_interpreter::PyretFile {
+    fn get(&self, _file_id: usize) -> &pyret_interpreter::PyretFile {
         todo!()
     }
 }
@@ -52,14 +52,13 @@ impl PyretRuntime {
         Self { interpreter }
     }
 
-    pub fn eval(&mut self, source: &str) -> Box<[JsValue]> {
+    pub fn eval(&mut self, _source: &str) -> Box<[JsValue]> {
         let values = self.interpreter.interpret(0).unwrap();
 
-        Box::from_iter(
-            values.iter().map(|value| {
-                serde_wasm_bindgen::to_value(&PyretValueWrapper::from(value)).unwrap()
-            }),
-        )
+        values
+            .iter()
+            .map(|value| serde_wasm_bindgen::to_value(&PyretValueWrapper::from(value)).unwrap())
+            .collect()
     }
 
     pub fn call_function(&mut self, name: &str, args: Box<[JsValue]>) -> JsValue {
@@ -73,7 +72,7 @@ impl PyretRuntime {
                     &args
                         .iter()
                         .map(|arg| {
-                            serde_wasm_bindgen::from_value::<PyretValueWrapper>(arg.to_owned())
+                            serde_wasm_bindgen::from_value::<PyretValueWrapper>(arg.clone())
                                 .unwrap()
                                 .into()
                         })
@@ -99,9 +98,13 @@ impl PyretRuntime {
                     let value = body
                         .apply(
                             &JsValue::NULL,
-                            &Array::from_iter(args.iter().map(|arg| {
-                                serde_wasm_bindgen::to_value(&PyretValueWrapper::from(arg)).unwrap()
-                            })),
+                            &args
+                                .iter()
+                                .map(|arg| {
+                                    serde_wasm_bindgen::to_value(&PyretValueWrapper::from(arg))
+                                        .unwrap()
+                                })
+                                .collect(),
                         )
                         .unwrap();
 
@@ -113,7 +116,7 @@ impl PyretRuntime {
 
                     Ok(wrapper.into())
                 }),
-            )
+            );
     }
 
     // pub fn execute(&mut self, wrapper: JsValue) -> PyretValueWrapper {

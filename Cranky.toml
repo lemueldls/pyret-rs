@@ -1,0 +1,65 @@
+deny = [
+  "unsafe_code",
+  # "missing_docs",
+]
+
+warn = [
+  "clippy::all",
+  "clippy::nursery",
+  "clippy::pedantic",
+  # "clippy::cargo",
+  # "clippy::restriction",
+]
+
+allow = [
+
+  "clippy::mod_module_files",
+
+  "clippy::match_same_arms",
+
+  "clippy::separated_literal_suffix",
+
+  "clippy::option_if_let_else",
+
+  "clippy::string_slice",
+
+  "clippy::module_name_repetitions",
+  "clippy::match_wildcard_for_single_variants",
+
+  # "clippy::match_wildcard_for_single_variants",
+  "clippy::wildcard_enum_match_arm",
+
+  # "clippy::print_stdout",
+  # "clippy::print_stderr",
+  # "clippy::separated_literal_suffix",
+  # "clippy::pattern_type_mismatch",
+
+  "clippy::implicit_return",
+
+  "clippy::shadow_same",
+  "clippy::shadow_reuse",
+  # "clippy::shadow_unrelated",
+
+  "clippy::unreachable",
+  "clippy::unimplemented",
+  # "clippy::todo",
+  "clippy::expect_used",
+
+  "clippy::integer_arithmetic",
+  "clippy::float_arithmetic",
+
+  "clippy::indexing_slicing",
+
+  # "clippy::missing_docs_in_private_items",
+
+  "clippy::string_add",
+
+  # "clippy::mod_module_files",
+  # "clippy::panic_in_result_fn",
+  "clippy::dbg_macro",
+  "clippy::unwrap_used",
+  # "clippy::unwrap_in_result",
+  # "clippy::string_slice",
+  # "clippy::indexing_slicing",
+  # "clippy::missing_docs_in_private_items",
+]

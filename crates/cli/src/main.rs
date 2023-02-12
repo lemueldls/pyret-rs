@@ -1,11 +1,10 @@
 mod dir;
 mod graph;
-// mod repl;
 
 use std::fs;
 
 use graph::FsGraph;
-use pyret_error::miette;
+// use pyret_error::miette;
 use pyret_interpreter::{trove, Interpreter, PyretGraph};
 // use pyret_error::term::{
 //     termcolor::{ColorChoice, StandardStream},
@@ -35,10 +34,6 @@ fn main()
 
     interpreter.use_context::<trove::Global>();
 
-    // let writer = StandardStream::stderr(ColorChoice::Auto);
-    // let config = Config::default();
-
-    // interpreter.interpret("2 + 4").unwrap();
     match interpreter.interpret(file_id) {
         Ok(values) => {
             for value in values.iter() {

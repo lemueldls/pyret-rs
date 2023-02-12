@@ -15,5 +15,3 @@ pyret-interpreter = { path = "../interpreter" }
 
 ansi_term = "0.12.1"
 dirs-next = "2.0.0"
-# rustyline = { version = "10.0.0" }
-# rustyline-derive = { version = "0.7.0" }

@@ -1,9 +1,8 @@
 pub mod graph;
 
-pub use miette;
-
 use std::fmt;
 
+pub use miette;
 use miette::{MietteError, MietteSpanContents, SourceCode, SourceSpan, SpanContents};
 
 pub struct PyretFile {
@@ -12,6 +11,7 @@ pub struct PyretFile {
 }
 
 impl PyretFile {
+    #[must_use]
     pub fn new(name: Box<str>, source: Box<str>) -> Self {
         Self { name, source }
     }
