@@ -1,8 +1,8 @@
 use super::ParenthesisExpression;
 use crate::{
     ast::{
-        ApplicationExpression, BinaryOperatorExpression, DotExpression, IdentifierExpression,
-        LiteralExpression, Statement,
+        ApplicationExpression, BinaryOperatorExpression, BlockExpression, DotExpression,
+        IdentifierExpression, LiteralExpression, Statement,
     },
     prelude::*,
 };
@@ -11,7 +11,7 @@ use crate::{
 #[transform(transform)]
 pub enum ExpressionStatement {
     Application(ApplicationExpression),
-    // Block(BlockExpression),
+    Block(BlockExpression),
     Literal(LiteralExpression),
     Identifier(IdentifierExpression),
     BinaryOperator(BinaryOperatorExpression),
@@ -26,7 +26,13 @@ impl ExpressionStatement {
     #[inline]
     pub fn transform(self, state: &mut LexerState) -> PyretResult<Self> {
         match self {
-            Self::Identifier(ident) if &state.source[ident.end()..=ident.end()] == "(" => {
+            Self::Identifier(ident)
+                if {
+                    let end = ident.end();
+
+                    &state.source[end..=end] == "("
+                } =>
+            {
                 let application = ApplicationExpression::new(ident, state)?;
 
                 return Ok(Self::Application(application));
@@ -42,17 +48,6 @@ impl ExpressionStatement {
         } else if let Some(dot) = state.lex::<DotExpression>()? {
             Self::Dot(dot).transform(state)?.transform(state)?
         } else if let Statement::Expression(expr) = state.pop()? {
-            // if !state.source[expr.end()..state.current_position]
-            //     .as_bytes()
-            //     .iter()
-            //     .any(|b| b == &b'\n')
-            // {
-            //     state.throw_late(PyretErrorKind::SameLineNextExpression {
-            //         left: expr.serialize(),
-            //         right: state.tokens.last().unwrap().serialize(),
-            //     });
-            // }
-
             expr
         } else {
             unreachable!()
@@ -61,14 +56,3 @@ impl ExpressionStatement {
         Ok(token)
     }
 }
-
-// #[derive(Debug)]
-// pub struct BlockExpression {
-//     pub stmts: Vec<Statement>,
-// }
-
-// #[derive(Debug)]
-// pub struct CallExpression {
-//     pub callee: Box<str>,
-//     pub arguments: Vec<ExpressionStatement>,
-// }

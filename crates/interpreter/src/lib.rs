@@ -109,6 +109,11 @@ impl Interpreter {
                     todo!()
                 }
             }
+            ast::ExpressionStatement::Block(block) => {
+                let values = self.interpret_block(block.body)?;
+
+                Ok(Rc::clone(values.last().unwrap()))
+            }
             ast::ExpressionStatement::Literal(literal) => match literal {
                 ast::LiteralExpression::Number(number) => {
                     Ok(Rc::new(PyretValue::Number(number.value)))

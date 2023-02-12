@@ -1,6 +1,7 @@
 crate::export![
     app,
     binary_op,
+    block,
     boolean,
     dot,
     function,
