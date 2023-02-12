@@ -27,10 +27,7 @@ impl TokenParser for VariableDeclaration {
 
         let kind = VariableDeclarationKind::Let;
 
-        let ident = match state.pop()? {
-            Statement::Expression(ExpressionStatement::Identifier(ident)) => ident,
-            _ => todo!("ident pls"),
-        };
+        let Statement::Expression(ExpressionStatement::Identifier(ident)) = state.pop()? else { todo!("ident pls") };
 
         let type_annotation = None;
 

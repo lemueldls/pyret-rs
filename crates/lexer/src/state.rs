@@ -27,6 +27,13 @@ impl<'input> LexerState<'input> {
         self.tokens.push(stmt);
     }
 
+    /// Lexes a token, skipping whitespace.
+    /// Returns `None` if there is no token to lex.
+    ///
+    /// # Errors
+    ///
+    /// Will return an [`PyretErrorKind`] if there was an error parsing the
+    /// token.
     pub fn lex<T: TokenLexer>(&mut self) -> PyretResult<Option<T>> {
         if let Some(trimmed_start) =
             self.source[self.current_position..].find(|c: char| !c.is_ascii_whitespace())
@@ -41,27 +48,33 @@ impl<'input> LexerState<'input> {
         }
     }
 
+    /// Lexes a token, skipping whitespace.
+    /// Returns an error if there is no token to lex.
+    ///
+    /// # Errors
+    ///
+    /// Will return an [`PyretErrorKind`] if there was an error parsing the
+    /// token, or if the token was not of the expected type.
     pub fn try_lex<T: TokenLexer>(&mut self) -> PyretResult<T> {
-        match self.lex()? {
-            Some(token) => Ok(token),
-            None => {
-                let error = if let Some(token) = self.lex::<ast::Statement>()? {
-                    PyretErrorKind::Unexpected {
-                        expected: Box::from(T::NODE_NAME),
-                        found: token.serialize(),
-                    }
+        if let Some(token) = self.lex()? {
+            Ok(token)
+        } else {
+            let error = if let Some(token) = self.lex::<ast::Statement>()? {
+                PyretErrorKind::Unexpected {
+                    expected: Box::from(T::NODE_NAME),
+                    found: token.serialize(),
+                }
+            } else {
+                let position = self.current_position.into();
+
+                if self.source[self.next_position..].is_empty() {
+                    PyretErrorKind::EarlyEnd { position }
                 } else {
-                    let position = self.current_position.into();
+                    PyretErrorKind::DidNotUnderstand { position }
+                }
+            };
 
-                    if self.source[self.next_position..].is_empty() {
-                        PyretErrorKind::EarlyEnd { position }
-                    } else {
-                        PyretErrorKind::DidNotUnderstand { position }
-                    }
-                };
-
-                Err(error)
-            }
+            Err(error)
         }
     }
 
@@ -78,6 +91,11 @@ impl<'input> LexerState<'input> {
         self.current_position = self.next_position + amount;
     }
 
+    /// Removes and returns the previous token.
+    ///
+    /// # Errors
+    ///
+    /// Will return an [`PyretErrorKind`] if there was no token to pop.
     pub fn pop(&mut self) -> PyretResult<ast::Statement> {
         match self.tokens.pop() {
             Some(token) => {

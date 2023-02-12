@@ -26,32 +26,31 @@ impl TokenParser for BinaryOperatorExpression {
     fn parse(input: Box<str>, state: &mut LexerState) -> PyretResult<Self> {
         let start_position = state.next_position;
 
-        if start_position > 1
+        let no_whitespace = start_position > 1
             && !state.source[start_position - 1..start_position]
                 .chars()
                 .next()
                 .unwrap()
-                .is_ascii_whitespace()
-        {
+                .is_ascii_whitespace();
+
+        if no_whitespace {
             return Err(PyretErrorKind::OperatorWhitespace {
                 operator: start_position,
             });
         }
 
-        let operator = {
-            match &*input {
-                "+" => BinaryOperation::Plus,
-                "-" => BinaryOperation::Minus,
-                "*" => BinaryOperation::Times,
-                "/" => BinaryOperation::Divide,
-                _ => unreachable!(),
-            }
+        let operator = match &*input {
+            "+" => BinaryOperation::Plus,
+            "-" => BinaryOperation::Minus,
+            "*" => BinaryOperation::Times,
+            "/" => BinaryOperation::Divide,
+            _ => unreachable!(),
         };
 
         state.skip(input.len());
+
         let right = state.try_lex::<ExpressionStatement>()?;
 
-        // state.next_position = start_position;
         let left = match state.pop()? {
             Statement::Expression(expr) => match expr {
                 ExpressionStatement::BinaryOperator(ref binary_op) => {

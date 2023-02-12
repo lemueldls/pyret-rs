@@ -6,7 +6,7 @@ use regex_syntax::hir::Hir;
 pub struct LexerItem {
     pub ident: Arc<str>,
     pub variant: Arc<str>,
-    pub transform: Option<Box<str>>,
+    pub transforms: Arc<[Box<str>]>,
 }
 
 pub type RegexMap = HashMap<Arc<str>, Vec<(Arc<[LexerItem]>, Hir)>>;

@@ -1,5 +1,5 @@
 use crate::{
-    ast::{ExpressionStatement, IdentifierExpression, Statement},
+    ast::{ExpressionStatement, IdentifierExpression},
     prelude::*,
 };
 
@@ -12,6 +12,9 @@ pub struct ApplicationExpression {
 }
 
 impl ApplicationExpression {
+    /// # Errors
+    ///
+    /// Will return an [`PyretErrorKind`] if the expression is not valid.
     pub fn new(ident: IdentifierExpression, state: &mut LexerState) -> PyretResult<Self> {
         let mut args = Vec::new();
 

@@ -1,6 +1,9 @@
-use crate::ast::{BooleanLiteral, NumericLiteral, StringLiteral};
+use crate::{
+    ast::{BooleanLiteral, NumericLiteral, StringLiteral},
+    prelude::*,
+};
 
-#[node]
+#[derive(Node, Debug, PartialEq)]
 pub enum LiteralExpression {
     String(StringLiteral),
     Number(NumericLiteral),

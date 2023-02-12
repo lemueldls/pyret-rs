@@ -1,12 +1,19 @@
-use crate::ast::{DeclarationStatement, ExpressionStatement, VariableDeclaration};
+use crate::{
+    ast::{DeclarationStatement, ExpressionStatement, VariableDeclaration},
+    prelude::*,
+};
 
-#[node(transform)]
+#[derive(Node, Debug, PartialEq)]
+#[transform(transform)]
 pub enum Statement {
     Expression(ExpressionStatement),
     Declaration(DeclarationStatement),
 }
 
 impl Statement {
+    /// # Errors
+    ///
+    /// Will return an [`PyretErrorKind`] if the statement is not valid.
     #[inline]
     pub fn transform(self, state: &mut LexerState) -> PyretResult<Self> {
         state.consume(self);

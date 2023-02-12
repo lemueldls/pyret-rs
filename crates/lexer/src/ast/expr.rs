@@ -7,7 +7,8 @@ use crate::{
     prelude::*,
 };
 
-#[node(transform)]
+#[derive(Node, Debug, PartialEq)]
+#[transform(transform)]
 pub enum ExpressionStatement {
     Application(ApplicationExpression),
     // Block(BlockExpression),

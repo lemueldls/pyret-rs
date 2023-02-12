@@ -17,18 +17,18 @@ pub fn return_nodes(nodes: &[LexerItem], use_offset: bool, i_slice: bool) -> Tok
     for LexerItem {
         ident,
         variant,
-        transform,
+        transforms,
     } in nodes
     {
         let (ident, variant) = (format_ident!("{ident}"), format_ident!("{variant}"));
 
         last_step = quote!(crate::ast::#ident::#variant #last_step);
 
-        if let Some(transform) = transform {
+        for transform in transforms.iter() {
             let transform = format_ident!("{transform}");
 
             last_step.extend(quote!(.#transform(state)?));
-        };
+        }
 
         last_step = quote!((#last_step));
     }

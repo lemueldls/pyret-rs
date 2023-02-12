@@ -1,6 +1,7 @@
 use super::VariableDeclaration;
+use crate::prelude::*;
 
-#[node]
+#[derive(Node, Debug, PartialEq)]
 pub enum DeclarationStatement {
     // Function(FunctionDeclaration),
     Variable(VariableDeclaration),

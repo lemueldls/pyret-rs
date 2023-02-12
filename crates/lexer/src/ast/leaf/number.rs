@@ -25,27 +25,26 @@ impl TokenParser for NumericLiteral {
         //     }
         // };
 
-        let value = match input.parse() {
-            Ok(value) => value,
-            Err(..) => {
-                let division = input.find('/').unwrap();
+        let value = if let Ok(value) = input.parse() {
+            value
+        } else {
+            let division = input.find('/').unwrap();
 
-                state.throw_late(PyretErrorKind::DivideByZero {
-                    // denominator: (
-                    //     state.next_position + input.find('/').unwrap() + 1,
-                    //     // input.len(),
-                    //     1,
-                    // )
-                    //     .into(),
-                    denominator: (
-                        state.next_position + division + 1,
-                        input.len() - division - 1,
-                    )
-                        .into(),
-                });
+            state.throw_late(PyretErrorKind::DivideByZero {
+                // denominator: (
+                //     state.next_position + input.find('/').unwrap() + 1,
+                //     // input.len(),
+                //     1,
+                // )
+                //     .into(),
+                denominator: (
+                    state.next_position + division + 1,
+                    input.len() - division - 1,
+                )
+                    .into(),
+            });
 
-                PyretNumber::Rough(0_f64)
-            }
+            PyretNumber::Rough(0_f64)
         };
 
         Ok(Self {

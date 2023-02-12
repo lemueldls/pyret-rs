@@ -1,8 +1,9 @@
+use std::{fmt::Debug, ops::Range};
+
 use crate::{
     error::{PyretResult, SerializedToken},
     LexerState,
 };
-use std::{fmt::Debug, ops::Range};
 
 pub trait Token: Debug + PartialEq + Sized {
     const NODE_NAME: &'static str;

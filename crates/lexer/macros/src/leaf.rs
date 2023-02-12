@@ -1,34 +1,13 @@
 use std::sync::Arc;
 
 use proc_macro::TokenStream;
-use proc_macro2::Ident;
 use proc_macro_error::{abort, ResultExt};
 use quote::quote;
-use syn::{
-    parse::{Parse, ParseStream},
-    punctuated::Punctuated,
-    ItemStruct, LitStr, Result, Token,
-};
+use syn::{ItemStruct, LitStr};
 
 use crate::{regex, utils, REGULAR_EXPRESSIONS};
 
-pub struct LeafTransform {
-    ident: Ident,
-    next: Ident,
-}
-
-impl Parse for LeafTransform {
-    fn parse(input: ParseStream) -> Result<Self> {
-        let mut tokens = Punctuated::<Ident, Token![=>]>::parse_terminated(input)?.into_iter();
-
-        let ident = tokens.next().unwrap();
-        let next = tokens.next().unwrap();
-
-        Ok(Self { ident, next })
-    }
-}
-
-pub fn expand(input: ItemStruct) -> TokenStream {
+pub fn expand(input: &ItemStruct) -> TokenStream {
     let struct_ident = &input.ident;
 
     let node_name = utils::node_name(struct_ident);
@@ -36,7 +15,7 @@ pub fn expand(input: ItemStruct) -> TokenStream {
     let variant = Arc::from_iter([regex::LexerItem {
         ident: Arc::from(struct_ident.to_string()),
         variant: Arc::from("parse"),
-        transform: None,
+        transforms: Arc::new([]),
     }]);
 
     let exprs = input

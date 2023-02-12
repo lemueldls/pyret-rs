@@ -1,13 +1,13 @@
 use std::sync::Arc;
 
 use proc_macro::TokenStream;
-use proc_macro_error::abort;
+use proc_macro_error::{abort, ResultExt};
 use quote::quote;
 use syn::{Fields, Ident, ItemEnum, Type};
 
 use crate::{regex, utils, REGULAR_EXPRESSIONS};
 
-pub fn expand(transform: &Option<Ident>, input: &ItemEnum) -> TokenStream {
+pub fn expand(input: &ItemEnum) -> TokenStream {
     let enum_ident = &input.ident;
     let enum_name = Arc::<str>::from(enum_ident.to_string());
 
@@ -19,6 +19,8 @@ pub fn expand(transform: &Option<Ident>, input: &ItemEnum) -> TokenStream {
     let mut regular_expressions = REGULAR_EXPRESSIONS
         .lock()
         .expect("Could not acquire regular expressions lock");
+
+    let transforms = get_transforms(input);
 
     for variant in &input.variants {
         match variant.fields {
@@ -52,9 +54,7 @@ pub fn expand(transform: &Option<Ident>, input: &ItemEnum) -> TokenStream {
                             .chain([regex::LexerItem {
                                 ident: Arc::clone(&enum_name),
                                 variant: Arc::clone(&variant_name),
-                                transform: transform
-                                    .as_ref()
-                                    .map(|ident| ident.to_string().into_boxed_str()),
+                                transforms: Arc::clone(&transforms),
                             }])
                             .collect();
 
@@ -79,15 +79,9 @@ pub fn expand(transform: &Option<Ident>, input: &ItemEnum) -> TokenStream {
     regular_expressions.insert(enum_name, matches);
 
     let expanded = quote! {
-        use crate::prelude::*;
-
-        #[derive(::std::fmt::Debug, ::std::cmp::PartialEq)]
-        #input
-
         impl TokenLexer for #enum_ident {
             #lex
         }
-
 
         impl Token for #enum_ident {
             const NODE_NAME: &'static str = #node_name;
@@ -116,4 +110,28 @@ pub fn expand(transform: &Option<Ident>, input: &ItemEnum) -> TokenStream {
     };
 
     TokenStream::from(expanded)
+}
+
+fn get_transforms(input: &ItemEnum) -> Arc<[Box<str>]> {
+    input
+        .attrs
+        .iter()
+        .filter_map(|attr| {
+            let ident = attr
+                .path
+                .get_ident()
+                .unwrap_or_else(|| abort!(attr.path, "invalid identifier"))
+                .to_string();
+
+            match ident.as_str() {
+                "transform" => Some(
+                    attr.parse_args::<Ident>()
+                        .unwrap_or_abort()
+                        .to_string()
+                        .into_boxed_str(),
+                ),
+                _ => None,
+            }
+        })
+        .collect()
 }
