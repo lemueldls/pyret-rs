@@ -1,7 +1,7 @@
 use crate::prelude::*;
 
 /// <https://www.pyret.org/docs/latest/s_literals.html#(part._.Boolean_.Literals)>
-#[derive(Leaf, Debug, PartialEq, Eq)]
+#[derive(Leaf, Debug, PartialEq)]
 #[regex(r"true|false")]
 pub struct BooleanLiteral {
     span: (usize, usize),

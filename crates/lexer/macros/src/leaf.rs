@@ -53,7 +53,7 @@ pub fn expand(input: &ItemStruct) -> TokenStream {
     let lex = if exprs.is_empty() {
         utils::empty_lex()
     } else {
-        regex::expand(&exprs, struct_ident.span())
+        regex::expand(exprs.clone(), struct_ident.span())
     };
 
     let old_exprs = REGULAR_EXPRESSIONS

@@ -73,7 +73,7 @@ pub fn expand(input: &ItemEnum) -> TokenStream {
     let lex = if matches.is_empty() {
         utils::empty_lex()
     } else {
-        regex::expand(&matches, enum_ident.span())
+        regex::expand(matches.clone(), enum_ident.span())
     };
 
     regular_expressions.insert(enum_name, matches);

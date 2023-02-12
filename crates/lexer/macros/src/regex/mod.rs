@@ -13,8 +13,10 @@ use regex_syntax::hir::Hir;
 use step::return_nodes;
 use syn::LitInt;
 
-pub fn expand(exprs: &[(Arc<[LexerItem]>, Hir)], span: Span) -> TokenStream {
-    let (matches, exprs): (Vec<_>, Vec<_>) = exprs.iter().cloned().unzip();
+pub fn expand(mut exprs: Vec<(Arc<[LexerItem]>, Hir)>, span: Span) -> TokenStream {
+    exprs.sort_by_key(|(items, _)| items.len());
+
+    let (matches, exprs): (Vec<_>, Vec<_>) = exprs.into_iter().unzip();
 
     let compiler = Compiler::new().bytes(true).only_utf8(true);
 

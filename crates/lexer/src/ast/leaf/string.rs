@@ -1,7 +1,7 @@
 use crate::prelude::*;
 
 /// <https://www.pyret.org/docs/latest/s_literals.html#(part._.String_.Literals)>
-#[derive(Leaf, Debug, PartialEq, Eq)]
+#[derive(Leaf, Debug, PartialEq)]
 // Single quotes
 #[regex(r"'(\\'|.)*?'")]
 // Double quotes
