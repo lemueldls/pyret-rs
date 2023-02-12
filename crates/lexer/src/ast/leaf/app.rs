@@ -1,5 +1,5 @@
 use crate::{
-    ast::{ExpressionStatement, IdentifierExpression},
+    ast::{ExpressionStatement, IdentifierExpression, KeywordStatement, Statement},
     prelude::*,
 };
 
@@ -23,8 +23,8 @@ impl ApplicationExpression {
         while let Some(expr) = state.lex::<ExpressionStatement>()? {
             args.push(expr);
 
-            if let Some(comma) = state.source[state.current_position..].find(',') {
-                state.current_position += comma + 1;
+            if let Some(Statement::Keyword(KeywordStatement::Comma(_))) = state.lex()? {
+                continue;
             }
         }
 

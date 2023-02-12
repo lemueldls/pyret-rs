@@ -1,5 +1,5 @@
 use crate::{
-    ast::{ExpressionStatement, Statement},
+    ast::{KeywordStatement, Statement},
     prelude::*,
 };
 
@@ -21,10 +21,8 @@ impl TokenParser for BlockExpression {
         let mut body = Vec::new();
 
         while let Some(stmt) = state.lex::<Statement>()? {
-            if let Statement::Expression(ExpressionStatement::Identifier(ident)) = &stmt {
-                if &*ident.name == "end" {
-                    break;
-                }
+            if matches!(stmt, Statement::Keyword(KeywordStatement::End(_))) {
+                break;
             }
 
             body.push(stmt);

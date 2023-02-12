@@ -16,7 +16,7 @@ use value::PyretValue;
 pub struct Interpreter {
     pub graph: Box<dyn PyretGraph>,
     pub context: Rc<RefCell<Context>>,
-    scope_level: usize,
+    scope_depth: usize,
 }
 
 impl Interpreter {
@@ -25,7 +25,7 @@ impl Interpreter {
         Self {
             graph: Box::new(graph),
             context: Rc::new(RefCell::new(Context::default())),
-            scope_level: 0,
+            scope_depth: 0,
         }
     }
 
@@ -54,11 +54,14 @@ impl Interpreter {
         &mut self,
         block: Vec<ast::Statement>,
     ) -> PyretResult<Box<[Rc<PyretValue>]>> {
-        self.scope_level += 1;
+        self.scope_depth += 1;
+
+        let depth = self.scope_depth;
 
         let values = block
             .into_iter()
             .map(|token| match token {
+                ast::Statement::Keyword(keyword) => todo!("Unexpected keyword: {keyword:?}"),
                 ast::Statement::Expression(expr) => {
                     let expression = self.interpret_expression(expr)?;
 
@@ -73,7 +76,13 @@ impl Interpreter {
             .filter_map(Result::transpose)
             .collect();
 
-        self.scope_level -= 1;
+        self.context
+            .as_ref()
+            .borrow_mut()
+            .registrar
+            .pop_scope(depth);
+
+        self.scope_depth -= 1;
 
         values
     }
@@ -155,13 +164,19 @@ impl Interpreter {
 
     fn interpret_declaration(&mut self, decl: ast::DeclarationStatement) -> PyretResult<()> {
         match decl {
+            ast::DeclarationStatement::Type(r#type) => {
+                dbg!(r#type);
+
+                todo!()
+            }
             ast::DeclarationStatement::Variable(var) => {
                 let value = self.interpret_expression(var.init)?;
 
-                self.context
-                    .borrow_mut()
-                    .registrar
-                    .register_local_expr(var.ident.name, value);
+                self.context.borrow_mut().registrar.register_local_expr(
+                    var.ident.name,
+                    value,
+                    self.scope_depth,
+                );
             }
         }
 

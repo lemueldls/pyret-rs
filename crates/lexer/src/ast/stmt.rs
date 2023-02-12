@@ -1,11 +1,12 @@
 use crate::{
-    ast::{DeclarationStatement, ExpressionStatement, VariableDeclaration},
+    ast::{DeclarationStatement, ExpressionStatement, KeywordStatement, VariableDeclaration},
     prelude::*,
 };
 
 #[derive(Node, Debug, PartialEq)]
 #[transform(transform)]
 pub enum Statement {
+    Keyword(KeywordStatement),
     Expression(ExpressionStatement),
     Declaration(DeclarationStatement),
 }

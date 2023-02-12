@@ -4,19 +4,37 @@ use std::{fmt, ops::Deref, rc::Rc};
 pub use function::PyretFunction;
 use pyret_number::{One, PyretNumber};
 
-// TODO: Make into struct
-pub enum PyretValueScoped {
-    Builtin(Rc<PyretValue>),
-    Local(Rc<PyretValue>),
+pub struct PyretValueScoped {
+    value: Rc<PyretValue>,
+    pub depth: usize,
+    pub is_builtin: bool,
+}
+
+impl PyretValueScoped {
+    #[must_use]
+    pub fn new_local(value: Rc<PyretValue>, depth: usize) -> Self {
+        Self {
+            value,
+            depth,
+            is_builtin: false,
+        }
+    }
+
+    #[must_use]
+    pub fn new_builtin(value: Rc<PyretValue>) -> Self {
+        Self {
+            value,
+            depth: 0,
+            is_builtin: true,
+        }
+    }
 }
 
 impl Deref for PyretValueScoped {
     type Target = Rc<PyretValue>;
 
     fn deref(&self) -> &Self::Target {
-        match self {
-            Self::Builtin(value) | Self::Local(value) => value,
-        }
+        &self.value
     }
 }
 

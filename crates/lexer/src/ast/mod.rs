@@ -1,1 +1,1 @@
-crate::export![leaf, lit, expr, decl, stmt];
+crate::export![leaf, lit, key, expr, decl, stmt];

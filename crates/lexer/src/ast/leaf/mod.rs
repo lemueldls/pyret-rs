@@ -3,13 +3,15 @@ crate::export![
     binary_op,
     block,
     boolean,
+    comma,
     dot,
+    end,
     function,
     ident,
     number,
     parenthesis,
     string,
-    type_ann,
+    r#type,
     variable
 ];
 
