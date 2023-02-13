@@ -29,7 +29,7 @@ impl PyretFunction {
         if args.len() == self.length {
             (self.body)(args, context)
         } else {
-            todo!()
+            todo!("Incorrect number of arguments.")
         }
     }
 }

@@ -104,7 +104,7 @@ impl Interpreter {
                     .as_ref()
                     .borrow()
                     .registrar
-                    .get(&app.ident.name)
+                    .get_value(&app.ident.name)?
                 {
                     match value.as_ref().borrow() {
                         PyretValue::Function(function) => {
@@ -137,7 +137,7 @@ impl Interpreter {
             ast::ExpressionStatement::Identifier(ident) => {
                 let name = &*ident.name;
 
-                if let Some(value) = self.context.borrow_mut().registrar.get(name) {
+                if let Some(value) = self.context.borrow_mut().registrar.get_value(name)? {
                     Ok(Rc::clone(value))
                 } else {
                     Err(PyretErrorKind::UnboundIdentifier {
@@ -164,13 +164,10 @@ impl Interpreter {
 
     fn interpret_declaration(&mut self, decl: ast::DeclarationStatement) -> PyretResult<()> {
         match decl {
-            ast::DeclarationStatement::Type(r#type) => {
-                dbg!(r#type);
-
-                todo!()
-            }
             ast::DeclarationStatement::Variable(var) => {
                 let value = self.interpret_expression(var.init)?;
+
+                self.type_check_identifier(&var.ident, &value)?;
 
                 self.context.borrow_mut().registrar.register_local_expr(
                     var.ident.name,
@@ -181,5 +178,41 @@ impl Interpreter {
         }
 
         Ok(())
+    }
+
+    fn type_check_identifier(
+        &self,
+        ident: &ast::IdentifierExpression,
+        value: &Rc<PyretValue>,
+    ) -> PyretResult<()> {
+        if let Some(annotation) = &ident.annotation {
+            match &annotation.value {
+                ast::AnnotationType::NameAnnotation {
+                    name,
+                    parameters,
+                    predicate,
+                } => match name {
+                    ast::IdentifierAnnotation::Name(ident) => {
+                        if let Some(r#type) = self
+                            .context
+                            .as_ref()
+                            .borrow()
+                            .registrar
+                            .get_type(&ident.name)?
+                        {
+                            if !r#type(value, Rc::clone(&self.context)) {
+                                todo!("Type error: {annotation:?}")
+                            }
+                        }
+
+                        Ok(())
+                    }
+                    ast::IdentifierAnnotation::Dot(..) => todo!("Type annotation: {annotation:?}"),
+                },
+                _ => todo!("Type annotation: {annotation:?}"),
+            }
+        } else {
+            Ok(())
+        }
     }
 }

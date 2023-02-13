@@ -1,32 +1,50 @@
-use std::{collections::HashMap, ops::Deref, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-use crate::value::{function::FunctionSignature, PyretFunction, PyretValue, PyretValueScoped};
+use crate::{
+    value::{function::FunctionSignature, PyretFunction, PyretValue, PyretValueScoped},
+    Context, PyretResult,
+};
+
+type TypePredicate = Box<dyn Fn(&PyretValue, Rc<RefCell<Context>>) -> bool>;
+
+enum RegistrarDeclaration {
+    Value(PyretValueScoped),
+    Type(TypePredicate),
+}
 
 #[derive(Default)]
 pub struct Registrar {
-    declarations: HashMap<Box<str>, PyretValueScoped>,
+    declarations: HashMap<Box<str>, RegistrarDeclaration>,
 }
 
 impl Registrar {
     pub fn register_builtin_expr(&mut self, name: &'static str, value: PyretValue) {
         self.declarations.insert(
             Box::from(name),
-            PyretValueScoped::new_builtin(Rc::new(value)),
+            RegistrarDeclaration::Value(PyretValueScoped::new_builtin(Rc::new(value))),
         );
     }
 
     pub fn register_local_expr(&mut self, name: Box<str>, value: Rc<PyretValue>, depth: usize) {
         if let Some(shadowing) = self.declarations.get(&name) {
-            if shadowing.is_builtin {
-                todo!("The declaration of {name} shadows a built-in declaration of the same name.");
+            if let RegistrarDeclaration::Value(value) = shadowing {
+                if value.is_builtin {
+                    todo!(
+                        "The declaration of {name} shadows a built-in declaration of the same name."
+                    );
+                } else {
+                    todo!(
+                        "This declaration of a name conflicts with an earlier declaration of the same name:"
+                    );
+                }
             } else {
-                todo!(
-                    "This declaration of a name conflicts with an earlier declaration of the same name:"
-                );
+                todo!("The declaration of {name} is not a value.");
             }
         } else {
-            self.declarations
-                .insert(name, PyretValueScoped::new_local(value, depth));
+            self.declarations.insert(
+                name,
+                RegistrarDeclaration::Value(PyretValueScoped::new_local(value, depth)),
+            );
         }
     }
 
@@ -38,9 +56,9 @@ impl Registrar {
     ) {
         self.declarations.insert(
             Box::from(name),
-            PyretValueScoped::new_builtin(Rc::new(PyretValue::Function(PyretFunction::new(
-                name, length, body,
-            )))),
+            RegistrarDeclaration::Value(PyretValueScoped::new_builtin(Rc::new(
+                PyretValue::Function(PyretFunction::new(name, length, body)),
+            ))),
         );
     }
 
@@ -53,22 +71,49 @@ impl Registrar {
     ) {
         self.declarations.insert(
             Box::from(name),
-            PyretValueScoped::new_local(
+            RegistrarDeclaration::Value(PyretValueScoped::new_local(
                 Rc::new(PyretValue::Function(PyretFunction::new(name, length, body))),
                 depth,
-            ),
+            )),
         );
     }
 
-    pub fn pop_scope(&mut self, depth: usize) {
-        self.declarations.retain(|_, scoped| scoped.depth != depth);
+    pub fn register_type(&mut self, name: Box<str>, predicate: TypePredicate) {
+        self.declarations
+            .insert(name, RegistrarDeclaration::Type(predicate));
     }
-}
 
-impl Deref for Registrar {
-    type Target = HashMap<Box<str>, PyretValueScoped>;
+    pub fn get_value(&self, name: &str) -> PyretResult<Option<&PyretValueScoped>> {
+        if let Some(declaration) = self.declarations.get(name) {
+            if let RegistrarDeclaration::Value(value) = declaration {
+                Ok(Some(value))
+            } else {
+                Err(todo!("The declaration of {name} is not a value."))
+            }
+        } else {
+            Ok(None)
+        }
+    }
 
-    fn deref(&self) -> &Self::Target {
-        &self.declarations
+    pub fn get_type(&self, name: &str) -> PyretResult<Option<&TypePredicate>> {
+        if let Some(declaration) = self.declarations.get(name) {
+            if let RegistrarDeclaration::Type(predicate) = declaration {
+                Ok(Some(predicate))
+            } else {
+                Err(todo!("The declaration of {name} is not a type."))
+            }
+        } else {
+            Ok(None)
+        }
+    }
+
+    pub fn pop_scope(&mut self, depth: usize) {
+        self.declarations.retain(|_, declaration| {
+            if let RegistrarDeclaration::Value(value) = declaration {
+                value.depth != depth
+            } else {
+                true
+            }
+        });
     }
 }
