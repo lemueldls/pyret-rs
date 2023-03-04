@@ -1,7 +1,5 @@
 mod token;
 
-use std::ops::Range;
-
 use line_col::LineColLookup;
 use miette::{Diagnostic, Report, SourceSpan};
 pub use pyret_file::{graph::PyretGraph, miette, PyretFile};
@@ -51,7 +49,7 @@ impl PyretError {
 }
 
 #[non_exhaustive]
-#[derive(Debug, Error, Diagnostic)]
+#[derive(Error, Diagnostic, Debug)]
 pub enum PyretErrorKind {
     #[error("Pyret didn't understand your program")]
     #[diagnostic(help(
@@ -59,7 +57,7 @@ pub enum PyretErrorKind {
     ))]
     DidNotUnderstand {
         #[label("look carefully around here")]
-        position: SourceSpan,
+        position: usize,
     },
 
     #[error("Pyret attempted to divide by zero")]
@@ -69,38 +67,64 @@ pub enum PyretErrorKind {
     },
 
     #[error("Pyret didn't understand the very end of your program")]
-    EarlyEnd { position: SourceSpan },
+    EarlyEnd {
+        #[label]
+        position: usize,
+    },
 
     #[error("Pyret found an empty block")]
-    EmptyBlock { ident: SourceSpan },
+    EmptyBlock {
+        #[label]
+        ident: SourceSpan,
+    },
 
     #[error("Pyret failed to evaluate the object lookup")]
-    ExpectedObject { left: SerializedToken },
+    ExpectedObject {
+        #[label]
+        left: SerializedToken,
+    },
 
     #[error("Pyret found evaluating this function application expression errored")]
     InvalidFunctionApplication {
         #[label("the left side was not a function value")]
-        span: Range<usize>,
+        span: SourceSpan,
     },
 
     #[error("Pyret thinks your program has an invalid number")]
-    InvalidNumber { number: Range<usize> },
+    InvalidNumber {
+        #[label("number literals in Pyret require at least one digit before the decimal point")]
+        number: SourceSpan,
+    },
 
     #[error("Pyret found an invalid string")]
-    InvalidString { string: Range<usize> },
+    InvalidString {
+        #[label]
+        string: SourceSpan,
+    },
 
     #[error("Pyret must have whitespace separating operators it from its operands")]
-    OperatorWhitespace { operator: usize },
+    OperatorWhitespace {
+        #[label]
+        operator: SourceSpan,
+    },
 
     #[error("Pyret found a Roughnum overflow")]
-    RoughNumberOverflow { span: Range<usize> },
+    RoughNumberOverflow {
+        #[label]
+        number: SourceSpan,
+    },
 
     #[error("Pyret thinks you're missing something before here")]
-    SomethingBefore { position: usize },
+    SomethingBefore {
+        #[label]
+        position: usize,
+    },
 
     #[error("Pyret expects each expression within a block to have its own line")]
     SameLineNextExpression {
+        #[label]
         left: SerializedToken,
+        #[label]
         right: SerializedToken,
     },
 
@@ -108,37 +132,47 @@ pub enum PyretErrorKind {
     UnboundIdentifier {
         ident: Box<str>,
         #[label("it is used but not previously defined")]
-        span: Range<usize>,
+        span: SourceSpan,
     },
 
     #[error("Pyret found an unexpected {}", found.name)]
     Unexpected {
         expected: Box<str>,
+        #[label]
         found: SerializedToken,
     },
 
     #[error("Pyret thinks your program has an incomplete string literal")]
     UnfinishedString {
         #[label]
-        from: usize,
+        from: SerializedToken,
         multiline: bool,
     },
 
     #[error("Pyret thinks your program is missing an opening block comment")]
     UnmatchedClosingComment {
         #[label]
-        position: usize,
+        position: SerializedToken,
     },
 
     #[error("Pyret thinks your program is missing a closing block comment")]
     UnmatchedOpeningComment {
         #[label]
-        position: usize,
+        position: SerializedToken,
     },
 
     #[error("Pyret didn't expect your program to end as soon as it did")]
     UnclosedParenthesis {
         #[label]
-        position: usize,
+        position: SourceSpan,
     },
+
+    #[error("{0}")]
+    RaiseRuntime(Box<str>),
+}
+
+impl From<&str> for PyretErrorKind {
+    fn from(s: &str) -> Self {
+        Self::RaiseRuntime(Box::from(s))
+    }
 }

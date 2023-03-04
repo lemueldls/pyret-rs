@@ -10,5 +10,5 @@ fancy = ["pyret-file/fancy"]
 
 [dependencies]
 line-col = "0.2.1"
-pyret-file = { path = "../file" }
+pyret-file = { path = "../file", verison = "0.0.0" }
 thiserror = "1.0.38"
