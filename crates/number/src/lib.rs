@@ -1,104 +1,83 @@
-mod ops;
+pub mod macros;
+pub mod math;
+pub mod num;
+pub mod ops;
+pub mod str;
 
-use std::str::FromStr;
+use std::cmp::Ordering;
 
-use num_bigint::BigInt;
+pub use num_bigint::BigInt;
 pub use num_rational::BigRational;
-pub use num_traits::{One, ToPrimitive, Zero};
+use num_traits::FromPrimitive;
+pub use num_traits::{One, Signed, ToPrimitive, Zero};
 
-#[derive(Debug, PartialEq)]
+type Result<T> = std::result::Result<T, &'static str>;
+
+#[derive(Debug, Clone, PartialEq)]
 pub enum PyretNumber {
     Exact(BigRational),
     Rough(f64),
 }
 
-impl FromStr for PyretNumber {
-    type Err = ();
+impl PyretNumber {
+    pub fn to_exact(&self) -> Result<Self> {
+        Ok(match self {
+            exact @ Self::Exact(..) => exact.clone(),
+            Self::Rough(number) => Self::Exact(BigRational::from_f64(*number).unwrap()),
+        })
+    }
 
-    fn from_str(value: &str) -> Result<Self, Self::Err> {
-        if let Some(number) = value.strip_prefix('~') {
-            let rough_number = if let Some((numerator, denominator)) = number.split_once('/') {
-                let numer = numerator.parse::<f64>().unwrap();
-                let denom = denominator.parse::<f64>().unwrap();
+    pub fn to_rough(&self) -> Result<Self> {
+        Ok(match self {
+            Self::Exact(number) => Self::Rough(number.to_f64().ok_or("roughnum overflow")?),
+            rough @ Self::Rough(..) => rough.clone(),
+        })
+    }
 
-                if denom == 0_f64 {
-                    return Err(());
-                }
+    #[must_use]
+    pub fn to_f64(&self) -> Option<f64> {
+        match self {
+            Self::Exact(exact) => exact.to_f64(),
+            Self::Rough(rough) => Some(*rough),
+        }
+    }
 
-                numer / denom
-            } else {
-                number.parse().unwrap()
-            };
+    #[must_use]
+    pub fn is_integer(&self) -> bool {
+        match self {
+            Self::Exact(exact) => exact.is_integer(),
+            Self::Rough(..) => false,
+        }
+    }
 
-            Ok(Self::Rough(rough_number))
-        } else {
-            let exact_number = if let Some((numerator, denominator)) = value.split_once('/') {
-                let numer = BigInt::from_str(numerator).unwrap();
-                let denom = BigInt::from_str(denominator).unwrap();
+    #[must_use]
+    pub const fn is_rational(&self) -> bool {
+        match self {
+            Self::Exact(..) => true,
+            Self::Rough(..) => false,
+        }
+    }
 
-                if denom.is_zero() {
-                    return Err(());
-                }
+    pub fn is_equal(&self, other: &Self) -> Result<bool> {
+        match (self, other) {
+            (Self::Exact(exact), Self::Exact(other_exact)) => Ok(exact == other_exact),
+            _ => Err("roughnums cannot be compared for equality"),
+        }
+    }
 
-                BigRational::new(numer, denom)
-            } else {
-                let is_negative = value.starts_with('-');
+    pub fn min<'a>(&'a self, other: &'a Self) -> Result<&'a Self> {
+        match self.partial_cmp(other) {
+            Some(Ordering::Less | Ordering::Equal) => Ok(self),
+            Some(Ordering::Greater) => Ok(other),
+            None => Err("roughnum overflow"),
+        }
+    }
 
-                let mut split = if is_negative { &value[1..] } else { value }
-                    .splitn(2, |c| c == 'e' || c == 'E');
-
-                let base = split.next().unwrap();
-
-                let (numerator, denominator) =
-                    if let Some((before_decimal_str, after_decimal_str)) = base.split_once('.') {
-                        let before_decimal = BigInt::from_str(before_decimal_str).unwrap();
-
-                        let tens = String::from('1') + &"0".repeat(after_decimal_str.len());
-                        let denominator = BigInt::from_str(&tens).unwrap();
-
-                        let after_decimal = BigInt::from_str(after_decimal_str).unwrap();
-
-                        let numerator = before_decimal * &denominator + after_decimal;
-
-                        (numerator, denominator)
-                    } else {
-                        (BigInt::from_str(base).unwrap(), BigInt::one())
-                    };
-
-                let (numerator, denominator) = if let Some(exp) = split.next() {
-                    let is_exponent_negative = exp.starts_with('-');
-
-                    let expanded = String::from('1')
-                        + &"0".repeat(
-                            if is_exponent_negative || exp.starts_with('+') {
-                                &exp[1..]
-                            } else {
-                                exp
-                            }
-                            .parse()
-                            .unwrap(),
-                        );
-
-                    let exponent = BigInt::from_str(&expanded).unwrap();
-
-                    if exponent.is_one() {
-                        (numerator, denominator)
-                    } else if is_exponent_negative {
-                        (numerator, denominator * exponent)
-                    } else {
-                        (numerator * exponent, denominator)
-                    }
-                } else {
-                    (numerator, denominator)
-                };
-
-                BigRational::new(
-                    if is_negative { -numerator } else { numerator },
-                    denominator,
-                )
-            };
-
-            Ok(Self::Exact(exact_number))
+    pub fn max<'a>(&'a self, other: &'a Self) -> Result<&'a Self> {
+        match self.partial_cmp(other) {
+            Some(Ordering::Less | Ordering::Equal) => Ok(other),
+            Some(Ordering::Greater) => Ok(self),
+            None => Err("roughnum overflow"),
         }
     }
 }
