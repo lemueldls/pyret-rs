@@ -1,5 +1,5 @@
 use crate::{
-    ast::{ExpressionStatement, IdentifierExpression, KeywordStatement, Statement},
+    ast::{ExpressionStatement, IdentifierExpression, Statement, SymbolStatement},
     prelude::*,
 };
 
@@ -20,16 +20,25 @@ impl ApplicationExpression {
 
         state.current_position = ident.end() + 1;
 
-        while let Some(expr) = state.lex::<ExpressionStatement>()? {
-            args.push(expr);
+        while let Some(stmt) = state.lex::<Statement>()? {
+            state.current_position = stmt.end();
 
-            if let Some(Statement::Keyword(KeywordStatement::Comma(_))) = state.lex()? {
+            if let Statement::Symbol(SymbolStatement::Comma(..)) = stmt {
                 continue;
+            }
+            if let Statement::Symbol(SymbolStatement::CloseParen(..)) = stmt {
+                break;
+            }
+
+            if let Statement::Expression(expr) = stmt {
+                args.push(expr);
+            } else {
+                todo!("Handle non-expression statements in application expressions");
             }
         }
 
         Ok(Self {
-            span: (ident.start(), state.next_position + 1),
+            span: (ident.start(), state.current_position),
             ident,
             args,
         })

@@ -1,4 +1,7 @@
-use crate::{ast::ExpressionStatement, prelude::*};
+use crate::{
+    ast::{CloseParenSymbol, ExpressionStatement},
+    prelude::*,
+};
 
 /// <https://www.pyret.org/docs/latest/Expressions.html#(elem._(bnf-prod._(.Pyret._paren-expr)))>
 #[derive(Leaf, Debug, PartialEq)]
@@ -17,16 +20,18 @@ impl TokenParser for ParenthesisExpression {
 
         let expr = Box::new(state.try_lex::<ExpressionStatement>()?);
 
-        let end = if let Some(closing) = state.source[state.current_position..].find(')') {
-            closing + 1
+        state.current_position = expr.end();
+
+        let end = if let Some(closing) = state.lex::<CloseParenSymbol>()? {
+            closing.end()
         } else {
             return Err(PyretErrorKind::UnclosedParenthesis {
-                position: start_position,
+                position: (start_position, start_position + 1).into(),
             });
         };
 
         Ok(Self {
-            span: (start_position, state.current_position + end),
+            span: (start_position, end),
             expr,
         })
     }

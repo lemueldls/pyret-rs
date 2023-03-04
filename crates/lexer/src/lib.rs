@@ -1,20 +1,22 @@
+#![feature(if_let_guard)]
+
 mod macros;
 mod state;
 mod token;
 
 pub mod ast;
-// pub mod comments;
-pub mod prelude;
+mod prelude;
 
 #[macro_use]
 extern crate pyret_lexer_macros;
 
 use prelude::*;
 pub use pyret_error as error;
+pub use token::Token;
 
 /// # Errors
 ///
-/// Will return a vector of [`Error`]s if there are any lexing errors.
+/// Will return a vector of [`PyretErrorKind`]s if there are any lexing errors.
 #[inline]
 pub fn lex(source: &str) -> Result<Vec<ast::Statement>, Vec<PyretErrorKind>> {
     // let mut comment_parser = CommentParser::new(self.input.clone());
@@ -64,7 +66,7 @@ fn lex_state(state: &mut LexerState) -> PyretResult<()> {
         Ok(())
     } else {
         Err(PyretErrorKind::DidNotUnderstand {
-            position: state.next_position.into(),
+            position: state.next_position,
         })
     }
 }

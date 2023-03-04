@@ -13,8 +13,8 @@ pub enum ExpressionStatement {
     Application(ApplicationExpression),
     Block(BlockExpression),
     Literal(LiteralExpression),
-    Identifier(IdentifierExpression),
     BinaryOperator(BinaryOperatorExpression),
+    Identifier(IdentifierExpression),
     Dot(DotExpression),
     Parenthesis(ParenthesisExpression),
 }
@@ -38,9 +38,7 @@ impl ExpressionStatement {
                 return Ok(Self::Application(application));
             }
 
-            _ => {
-                state.consume(Statement::Expression(self));
-            }
+            _ => state.consume(Statement::Expression(self)),
         }
 
         let token = if let Some(binary_op) = state.lex::<BinaryOperatorExpression>()? {

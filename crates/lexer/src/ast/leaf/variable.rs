@@ -4,33 +4,29 @@ use crate::{
 };
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum VariableDeclarationKind {
+pub enum LetDeclarationKind {
     Let,
     Variable,
     RecursiveLet,
 }
 
 #[derive(Leaf, Debug, PartialEq)]
-#[regex(r"=")]
-pub struct VariableDeclaration {
+pub struct LetDeclaration {
     span: (usize, usize),
-    pub kind: VariableDeclarationKind,
+    pub kind: LetDeclarationKind,
     pub ident: IdentifierExpression,
     pub init: ExpressionStatement,
 }
 
-impl TokenParser for VariableDeclaration {
-    #[inline]
-    fn parse(input: Box<str>, state: &mut LexerState) -> PyretResult<Self> {
+impl LetDeclaration {
+    pub fn new(
+        kind: LetDeclarationKind,
+        ident: IdentifierExpression,
+        state: &mut LexerState,
+    ) -> PyretResult<Self> {
         let start_position = state.next_position;
 
-        let kind = VariableDeclarationKind::Let;
-
-        let Statement::Expression(ExpressionStatement::Identifier(ident)) = state.pop()? else { todo!("ident pls") };
-
-        // Reset next position
-        state.next_position = start_position;
-        state.skip(input.len());
+        let kind = LetDeclarationKind::Let;
 
         let init = state.try_lex::<ExpressionStatement>()?;
 

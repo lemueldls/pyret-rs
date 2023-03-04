@@ -15,34 +15,36 @@ pub struct DotExpression {
 impl TokenParser for DotExpression {
     #[inline]
     fn parse(_input: Box<str>, state: &mut LexerState) -> PyretResult<Self> {
+        let start_position = state.current_position;
+
         // Skip "."
         state.skip(1);
 
         let property = match state.try_lex::<IdentifierExpression>() {
             Ok(ident) => ident,
             Err(error) => {
-                return match state.lex::<NumericLiteral>()? {
-                    Some(number) => Err(PyretErrorKind::InvalidNumber {
-                        number: number.start() - 1..number.end(),
-                    }),
-                    None => Err(error),
-                }
+                state.current_position = start_position + 1;
+
+                return Err(match state.lex::<NumericLiteral>()? {
+                    Some(number) => PyretErrorKind::InvalidNumber {
+                        number: (start_position..number.end()).into(),
+                    },
+                    None => error,
+                });
             }
         };
-
-        let end = property.end();
 
         let object = Box::new(match state.pop()? {
             Statement::Expression(expr) => expr,
             stmt => {
                 return Err(PyretErrorKind::ExpectedObject {
                     left: stmt.serialize(),
-                })
+                });
             }
         });
 
         Ok(Self {
-            span: (object.start(), end),
+            span: (object.start(), property.end()),
             object,
             property,
         })

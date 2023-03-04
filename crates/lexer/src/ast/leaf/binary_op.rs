@@ -9,11 +9,49 @@ pub enum BinaryOperation {
     Minus,
     Times,
     Divide,
+    LessThan,
+    LessThanOrEqual,
+    GreaterThan,
+    GreaterThanOrEqual,
+    Equal,
+    NotEqual,
+    And,
+    Or,
+    Is,
+    IsRoughly,
+}
+
+impl BinaryOperation {
+    #[must_use]
+    pub const fn priority(&self) -> u8 {
+        match self {
+            Self::Plus | Self::Minus => 0,
+            Self::Times | Self::Divide => 1,
+            Self::LessThan
+            | Self::LessThanOrEqual
+            | Self::GreaterThan
+            | Self::GreaterThanOrEqual
+            | Self::Equal
+            | Self::NotEqual => 2,
+            Self::And | Self::Or => 3,
+            Self::Is | Self::IsRoughly => 4,
+        }
+    }
+
+    #[must_use]
+    pub const fn is_testing(&self) -> bool {
+        matches!(self, Self::Is | Self::IsRoughly)
+    }
+
+    #[must_use]
+    pub fn check_grouping(&self, other: &Self) -> bool {
+        self == other || self.is_testing() || other.is_testing()
+    }
 }
 
 /// <https://www.pyret.org/docs/latest/Expressions.html#(part._s~3abinop-expr)>
 #[derive(Leaf, Debug, PartialEq)]
-#[regex(r"[\-+*/]")]
+#[regex(r"[+\-*/]|<=?|>=?|==|<>|and|or|is(-roughly)?")]
 pub struct BinaryOperatorExpression {
     span: (usize, usize),
     pub left: Box<ExpressionStatement>,
@@ -21,21 +59,48 @@ pub struct BinaryOperatorExpression {
     pub right: Box<ExpressionStatement>,
 }
 
+impl BinaryOperatorExpression {
+    #[must_use]
+    pub fn new(
+        left: ExpressionStatement,
+        operator: BinaryOperation,
+        right: ExpressionStatement,
+    ) -> Self {
+        match (left, right) {
+            (left, ExpressionStatement::BinaryOperator(mut binary_op))
+                if operator.priority() < binary_op.operator.priority() =>
+            {
+                binary_op.left = Box::new(ExpressionStatement::BinaryOperator(Self::new(
+                    left,
+                    operator,
+                    *binary_op.left,
+                )));
+
+                binary_op
+            }
+
+            (left, right) => Self {
+                span: (left.start(), right.end()),
+                left: Box::new(left),
+                operator,
+                right: Box::new(right),
+            },
+        }
+    }
+}
+
 impl TokenParser for BinaryOperatorExpression {
     #[inline]
     fn parse(input: Box<str>, state: &mut LexerState) -> PyretResult<Self> {
         let start_position = state.next_position;
 
-        let no_whitespace = start_position > 1
-            && !state.source[start_position - 1..start_position]
-                .chars()
-                .next()
-                .unwrap()
-                .is_ascii_whitespace();
+        let no_whitespace = state.current_position == start_position;
+
+        let length = input.len();
 
         if no_whitespace {
             return Err(PyretErrorKind::OperatorWhitespace {
-                operator: start_position,
+                operator: (start_position, length).into(),
             });
         }
 
@@ -44,17 +109,34 @@ impl TokenParser for BinaryOperatorExpression {
             "-" => BinaryOperation::Minus,
             "*" => BinaryOperation::Times,
             "/" => BinaryOperation::Divide,
-            _ => unreachable!(),
+            "<" => BinaryOperation::LessThan,
+            "<=" => BinaryOperation::LessThanOrEqual,
+            ">" => BinaryOperation::GreaterThan,
+            ">=" => BinaryOperation::GreaterThanOrEqual,
+            "==" => BinaryOperation::Equal,
+            "<>" => BinaryOperation::NotEqual,
+            "and" => BinaryOperation::And,
+            "or" => BinaryOperation::Or,
+            "is" => BinaryOperation::Is,
+            "is-roughly" => BinaryOperation::IsRoughly,
+            op => unreachable!("{{{op}}}"),
         };
 
-        state.skip(input.len());
+        state.skip(length);
 
-        let right = state.try_lex::<ExpressionStatement>()?;
+        let right = match state.try_lex::<ExpressionStatement>()? {
+            ExpressionStatement::BinaryOperator(binary_op)
+                if !operator.check_grouping(&binary_op.operator) =>
+            {
+                todo!("error about groups levels")
+            }
+            expr => expr,
+        };
 
         let left = match state.pop()? {
-            Statement::Expression(expr) => match expr {
-                ExpressionStatement::BinaryOperator(ref binary_op) => {
-                    if binary_op.operator == operator {
+            Statement::Expression(expr) => match &expr {
+                ExpressionStatement::BinaryOperator(binary_op) => {
+                    if operator.check_grouping(&binary_op.operator) {
                         expr
                     } else {
                         todo!("error about groups levels")
@@ -65,11 +147,6 @@ impl TokenParser for BinaryOperatorExpression {
             _ => todo!("expr pls"),
         };
 
-        Ok(Self {
-            span: (state.next_position, right.end()),
-            left: Box::new(left),
-            operator,
-            right: Box::new(right),
-        })
+        Ok(Self::new(left, operator, right))
     }
 }

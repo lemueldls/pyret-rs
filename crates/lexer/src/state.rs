@@ -1,3 +1,5 @@
+use std::any::TypeId;
+
 use crate::{ast, prelude::*};
 
 #[derive(Debug)]
@@ -34,7 +36,7 @@ impl<'input> LexerState<'input> {
     ///
     /// Will return an [`PyretErrorKind`] if there was an error parsing the
     /// token.
-    pub fn lex<T: TokenLexer>(&mut self) -> PyretResult<Option<T>> {
+    pub fn lex<T: TokenLexer + 'static>(&mut self) -> PyretResult<Option<T>> {
         if let Some(trimmed_start) =
             self.source[self.current_position..].find(|c: char| !c.is_ascii_whitespace())
         {
@@ -43,6 +45,14 @@ impl<'input> LexerState<'input> {
             T::lex(self)
         } else {
             self.next_position = self.current_position;
+
+            if TypeId::of::<T>() != TypeId::of::<ast::CommentSymbol>() {
+                if let Some(comment) = self.lex::<ast::CommentSymbol>()? {
+                    self.current_position = comment.end();
+
+                    return self.lex();
+                }
+            }
 
             Ok(None)
         }
@@ -55,7 +65,7 @@ impl<'input> LexerState<'input> {
     ///
     /// Will return an [`PyretErrorKind`] if there was an error parsing the
     /// token, or if the token was not of the expected type.
-    pub fn try_lex<T: TokenLexer>(&mut self) -> PyretResult<T> {
+    pub fn try_lex<T: TokenLexer + 'static>(&mut self) -> PyretResult<T> {
         if let Some(token) = self.lex()? {
             Ok(token)
         } else {
@@ -65,7 +75,7 @@ impl<'input> LexerState<'input> {
                     found: token.serialize(),
                 }
             } else {
-                let position = self.current_position.into();
+                let position = self.current_position;
 
                 if self.source[self.next_position..].is_empty() {
                     PyretErrorKind::EarlyEnd { position }

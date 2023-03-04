@@ -1,4 +1,4 @@
-use pyret_number::PyretNumber;
+use pyret_number::{str::PyretNumberParseError, PyretNumber};
 
 use crate::prelude::*;
 
@@ -13,38 +13,35 @@ pub struct NumericLiteral {
 impl TokenParser for NumericLiteral {
     #[inline]
     fn parse(input: Box<str>, state: &mut LexerState) -> PyretResult<Self> {
-        // if let Some(prefix) = value.get(..2) {
-        //     let unary_operator = prefix.find('-').or_else(|| prefix.find('+'));
+        let value = match input.parse() {
+            Ok(value) => value,
+            Err(error) => match error {
+                PyretNumberParseError::DivideByZero => {
+                    let divider = input.find('/').unwrap();
 
-        //     if let Some(position) = unary_operator {
-        //         if state.on_same_line() {
-        //             return Err(ErrorKind::OperatorWhitespace {
-        //                 position: state.next_position + position,
-        //             });
-        //         }
-        //     }
-        // };
+                    state.throw_late(PyretErrorKind::DivideByZero {
+                        denominator: (state.next_position + divider + 1, input.len() - divider - 1)
+                            .into(),
+                    });
 
-        let value = if let Ok(value) = input.parse() {
-            value
-        } else {
-            let division = input.find('/').unwrap();
+                    PyretNumber::Rough(0.0)
+                }
+                PyretNumberParseError::InvalidNumber => {
+                    state.throw_late(PyretErrorKind::InvalidNumber {
+                        number: (state.next_position, input.len()).into(),
+                    });
 
-            state.throw_late(PyretErrorKind::DivideByZero {
-                // denominator: (
-                //     state.next_position + input.find('/').unwrap() + 1,
-                //     // input.len(),
-                //     1,
-                // )
-                //     .into(),
-                denominator: (
-                    state.next_position + division + 1,
-                    input.len() - division - 1,
-                )
-                    .into(),
-            });
+                    PyretNumber::Rough(0.0)
+                }
+                PyretNumberParseError::ParseFloat(..) => {
+                    state.throw_late(PyretErrorKind::RoughNumberOverflow {
+                        number: (state.next_position, input.len()).into(),
+                    });
 
-            PyretNumber::Rough(0_f64)
+                    PyretNumber::Rough(0.0)
+                }
+                _ => unreachable!(),
+            },
         };
 
         Ok(Self {

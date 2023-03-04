@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use proc_macro::TokenStream;
+use proc_macro2::Ident;
 use proc_macro_error::{abort, ResultExt};
 use quote::quote;
 use syn::{ItemStruct, LitStr};
@@ -9,8 +10,6 @@ use crate::{regex, utils, REGULAR_EXPRESSIONS};
 
 pub fn expand(input: &ItemStruct) -> TokenStream {
     let struct_ident = &input.ident;
-
-    let node_name = utils::node_name(struct_ident);
 
     let variant = Arc::from_iter([regex::LexerItem {
         ident: Arc::from(struct_ident.to_string()),
@@ -50,31 +49,36 @@ pub fn expand(input: &ItemStruct) -> TokenStream {
         })
         .collect::<Vec<_>>();
 
+    TokenStream::from(create_leaf(exprs, struct_ident))
+}
+
+pub fn create_leaf(
+    exprs: Vec<(Arc<[regex::LexerItem]>, regex_syntax::hir::Hir)>,
+    ident: &Ident,
+) -> proc_macro2::TokenStream {
+    let node_name = utils::node_name(ident);
+
     let lex = if exprs.is_empty() {
         utils::empty_lex()
     } else {
-        regex::expand(exprs.clone(), struct_ident.span())
+        regex::expand(exprs.clone(), ident.span())
     };
 
     let old_exprs = REGULAR_EXPRESSIONS
         .lock()
         .expect("Could not acquire regular expressions lock")
-        .insert(Arc::from(struct_ident.to_string()), exprs);
+        .insert(Arc::from(ident.to_string()), exprs);
 
     if old_exprs.is_some() {
-        abort!(
-            struct_ident,
-            "Duplicate leaf struct identifier: {}.",
-            struct_ident
-        );
+        abort!(ident, "Duplicate leaf struct identifier: {ident}.");
     };
 
-    let expanded = quote! {
-        impl TokenLexer for #struct_ident {
+    quote! {
+        impl TokenLexer for #ident {
             #lex
         }
 
-        impl Token for #struct_ident {
+        impl Token for #ident {
             const NODE_NAME: &'static str = #node_name;
 
             #[inline]
@@ -92,7 +96,5 @@ pub fn expand(input: &ItemStruct) -> TokenStream {
                 self.span.1
             }
         }
-    };
-
-    TokenStream::from(expanded)
+    }
 }

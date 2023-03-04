@@ -1,7 +1,7 @@
 use crate::prelude::*;
 
 /// <https://www.pyret.org/docs/latest/s_literals.html#(part._.String_.Literals)>
-#[derive(Leaf, Debug, PartialEq)]
+#[derive(Leaf, Debug, PartialEq, Eq)]
 // Single quotes
 #[regex(r"'(\\'|.)*?'")]
 // Double quotes
@@ -23,23 +23,89 @@ impl TokenParser for StringLiteral {
         };
 
         let end = input.len();
-        let value = &input[offset..end - offset];
+        let content = &input[offset..end - offset];
 
         let span = state.spanned(end);
 
-        // TODO
-        // let valid_regex = test_regex!(
-        //     r#"(\\[0-7]{1,3}|\\x[[:xdigit:]]{1,2}|\\u[[:xdigit:]]{1,4}|\\[\\nrt"'
-        // ]|[^\\\n])*$"#,     value,
-        // );
+        let value = if let Some(value) = unescape(content) {
+            value
+        } else {
+            state.throw_late(PyretErrorKind::InvalidString {
+                string: span.into(),
+            });
 
-        // if !valid_regex {
-        //     state.throw_late(Error::InvalidString { span: span.clone() });
-        // }
+            Box::from(content)
+        };
 
-        Ok(Self {
-            span,
-            value: Box::from(value),
-        })
+        Ok(Self { span, value })
     }
+}
+
+fn unescape(input: &str) -> Option<Box<str>> {
+    let mut string = String::with_capacity(input.len());
+
+    let mut chars = input.chars().peekable();
+
+    while let Some(c) = chars.next() {
+        if c == '\\' {
+            let next = chars.next()?;
+
+            match next {
+                'n' => string.push('\n'),
+                'r' => string.push('\r'),
+                't' => string.push('\t'),
+                '\'' => string.push('\''),
+                '"' => string.push('"'),
+                '\\' => string.push('\\'),
+                'x' => {
+                    let mut code = 0;
+
+                    if !chars.peek()?.is_ascii_hexdigit() {
+                        return None;
+                    }
+
+                    for _ in 0..2 {
+                        let Some(digit) = chars.next_if(char::is_ascii_hexdigit) else { break };
+
+                        code = code * 16 + digit.to_digit(16).unwrap();
+                    }
+
+                    string.push(char::from_u32(code)?);
+                }
+                'u' => {
+                    let mut code = 0;
+
+                    if !chars.peek()?.is_ascii_hexdigit() {
+                        return None;
+                    }
+
+                    for _ in 0..4 {
+                        let Some(digit) = chars.next_if(char::is_ascii_hexdigit) else { break };
+
+                        code = code * 16 + digit.to_digit(16).unwrap();
+                    }
+
+                    string.push(char::from_u32(code)?);
+                }
+                '0'..='7' => {
+                    let mut code = next.to_digit(8).unwrap();
+
+                    if let Some(digit) = chars.next_if(char::is_ascii_digit) {
+                        code = code * 8 + digit.to_digit(8).unwrap();
+
+                        if let Some(digit) = chars.next_if(char::is_ascii_digit) {
+                            code = code * 8 + digit.to_digit(8).unwrap();
+                        }
+                    }
+
+                    string.push(char::from_u32(code)?);
+                }
+                _ => return None,
+            }
+        } else {
+            string.push(c);
+        }
+    }
+
+    Some(string.into_boxed_str())
 }

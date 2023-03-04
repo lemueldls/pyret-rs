@@ -3,9 +3,8 @@ crate::export![
     binary_op,
     block,
     boolean,
-    comma,
+    check,
     dot,
-    end,
     function,
     ident,
     number,
@@ -14,6 +13,3 @@ crate::export![
     r#type,
     variable
 ];
-
-#[cfg(feature = "comments")]
-crate::export![comment];

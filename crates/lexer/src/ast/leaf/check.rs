@@ -1,22 +1,31 @@
+use super::StringLiteral;
 use crate::{
-    ast::{Statement, SymbolStatement},
+    ast::{ColonSymbol, Statement, SymbolStatement},
     prelude::*,
 };
 
-/// <https://www.pyret.org/docs/latest/Blocks.html>
+/// <https://www.pyret.org/docs/latest/testing.html>
 #[derive(Leaf, Debug, PartialEq)]
-#[regex(r"block:")]
-pub struct BlockExpression {
+#[regex(r"check")]
+pub struct CheckDeclaration {
     span: (usize, usize),
+    pub label: Option<Box<str>>,
     pub body: Vec<Statement>,
 }
 
-impl TokenParser for BlockExpression {
+impl TokenParser for CheckDeclaration {
     #[inline]
     fn parse(_input: Box<str>, state: &mut LexerState) -> PyretResult<Self> {
         let start_position = state.next_position;
 
-        state.current_position = start_position + 6;
+        state.current_position = start_position + 5;
+
+        let label = state.lex::<StringLiteral>()?.map(|lit| {
+            state.current_position = lit.end();
+
+            lit.value
+        });
+        state.current_position = state.try_lex::<ColonSymbol>()?.end();
 
         let mut body = Vec::new();
 
@@ -37,6 +46,7 @@ impl TokenParser for BlockExpression {
         if let Some(end_position) = end_position {
             Ok(Self {
                 span: (start_position, end_position),
+                label,
                 body,
             })
         } else {

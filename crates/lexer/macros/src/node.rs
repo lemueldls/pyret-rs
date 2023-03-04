@@ -3,9 +3,9 @@ use std::sync::Arc;
 use proc_macro::TokenStream;
 use proc_macro_error::{abort, ResultExt};
 use quote::quote;
-use syn::{Fields, Ident, ItemEnum, Type};
+use syn::{Fields, Ident, ItemEnum, LitStr, Type};
 
-use crate::{regex, utils, REGULAR_EXPRESSIONS};
+use crate::{leaf::create_leaf, regex, utils, REGULAR_EXPRESSIONS};
 
 pub fn expand(input: &ItemEnum) -> TokenStream {
     let enum_ident = &input.ident;
@@ -15,18 +15,15 @@ pub fn expand(input: &ItemEnum) -> TokenStream {
 
     let mut matches = Vec::new();
     let mut members = Vec::new();
-
-    let mut regular_expressions = REGULAR_EXPRESSIONS
-        .lock()
-        .expect("Could not acquire regular expressions lock");
+    let mut leafs = Vec::new();
 
     let transforms = get_transforms(input);
 
     for variant in &input.variants {
-        match variant.fields {
-            Fields::Unnamed(ref fields) => {
-                let variant_ident = &variant.ident;
+        let variant_ident = &variant.ident;
 
+        match &variant.fields {
+            Fields::Unnamed(fields) => {
                 let leaf_ident = match fields
                     .unnamed
                     .first()
@@ -34,17 +31,81 @@ pub fn expand(input: &ItemEnum) -> TokenStream {
                     .ty
                 {
                     Type::Path(ref type_path) => {
-                        &type_path
+                        let i = &type_path
                             .path
                             .segments
                             .last()
                             .unwrap_or_else(|| abort!(fields, "Expected a path"))
-                            .ident
+                            .ident;
+                        i
                     }
                     _ => abort!(variant, "Expected a path"),
                 };
 
-                if let Some(regexps) = regular_expressions.get(&Arc::from(leaf_ident.to_string())) {
+                let item = Arc::from_iter([
+                    regex::LexerItem {
+                        ident: Arc::from(leaf_ident.to_string()),
+                        variant: Arc::from("parse"),
+                        transforms: Arc::new([]),
+                    },
+                    regex::LexerItem {
+                        ident: Arc::clone(&enum_name),
+                        variant: Arc::from(variant_ident.to_string()),
+                        transforms: Arc::clone(&transforms),
+                    },
+                ]);
+
+                let exprs = variant.attrs.iter().find_map(|attr| {
+                    let ident = attr
+                        .path
+                        .get_ident()
+                        .unwrap_or_else(|| abort!(attr.path, "invalid identifier"))
+                        .to_string();
+
+                    let hir = match ident.as_str() {
+                        "regex" => {
+                            let regex: LitStr = attr.parse_args().unwrap_or_abort();
+
+                            Some(
+                                regex_syntax::Parser::new()
+                                    .parse(&regex.value())
+                                    .unwrap_or_else(|error| abort!(regex, error)),
+                            )
+                        }
+                        _ => None,
+                    };
+
+                    hir.map(|hir| (Arc::clone(&item), hir))
+                });
+
+                if let Some(regex) = exprs {
+                    let leaf_item = &regex.0[0];
+                    let mut leaf = create_leaf(
+                        vec![(Arc::from_iter([leaf_item.clone()]), regex.1.clone())],
+                        leaf_ident,
+                    );
+
+                    leaf.extend(quote! {
+                        #[derive(Debug, PartialEq, Eq)]
+                        pub struct #leaf_ident {
+                            span: (usize, usize)
+                        }
+
+                        impl TokenParser for #leaf_ident {
+                            #[inline]
+                            fn parse(input: Box<str>, state: &mut LexerState) -> PyretResult<Self> {
+                                Ok(Self { span: state.spanned(input.len()) })
+                            }
+                        }
+                    });
+
+                    leafs.push(leaf);
+                    matches.extend(vec![regex]);
+                } else if let Some(regexps) = REGULAR_EXPRESSIONS
+                    .lock()
+                    .expect("Could not acquire regular expressions lock")
+                    .get(&Arc::from(leaf_ident.to_string()))
+                {
                     let variant_name = Arc::from(variant_ident.to_string());
 
                     for (items, exprs) in regexps {
@@ -76,7 +137,10 @@ pub fn expand(input: &ItemEnum) -> TokenStream {
         regex::expand(matches.clone(), enum_ident.span())
     };
 
-    regular_expressions.insert(enum_name, matches);
+    REGULAR_EXPRESSIONS
+        .lock()
+        .expect("Could not acquire regular expressions lock")
+        .insert(enum_name, matches);
 
     let expanded = quote! {
         impl TokenLexer for #enum_ident {
@@ -107,6 +171,8 @@ pub fn expand(input: &ItemEnum) -> TokenStream {
                 }
             }
         }
+
+        #(#leafs)*
     };
 
     TokenStream::from(expanded)

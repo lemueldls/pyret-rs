@@ -1,8 +1,11 @@
-use super::VariableDeclaration;
-use crate::prelude::*;
+use crate::{
+    ast::{CheckDeclaration, LetDeclaration},
+    prelude::*,
+};
 
 #[derive(Node, Debug, PartialEq)]
 pub enum DeclarationStatement {
+    Check(CheckDeclaration),
     // Function(FunctionDeclaration),
-    Variable(VariableDeclaration),
+    Let(LetDeclaration),
 }
