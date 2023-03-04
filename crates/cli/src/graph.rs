@@ -1,6 +1,7 @@
 use std::fs;
 
-use pyret_interpreter::{PyretFile, PyretGraph};
+use pyret_file::PyretFile;
+use pyret_interpreter::PyretGraph;
 
 pub struct FsGraph {
     pub files: Vec<PyretFile>,

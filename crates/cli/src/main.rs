@@ -3,22 +3,31 @@ mod graph;
 
 use std::fs;
 
-use graph::FsGraph;
-// use pyret_error::miette;
-use pyret_interpreter::{trove, Interpreter, PyretGraph};
 // use pyret_error::term::{
 //     termcolor::{ColorChoice, StandardStream},
 //     Config,
 // };
+use clap::Parser;
+use graph::FsGraph;
+// use pyret_error::miette;
+use pyret_interpreter::{io::Output, trove, value::PyretValue, Interpreter, PyretGraph};
+
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+struct Args {
+    program: String,
+}
 
 fn main()
 // -> miette::Result<()>
 {
     // miette::set_hook(Box::new(|_| {}))?;
 
+    let args = Args::parse();
+
     let mut graph = FsGraph::new();
 
-    let name = fs::canonicalize("test.arr").unwrap();
+    let name = fs::canonicalize(args.program).unwrap();
 
     let file_id = graph.register(&name.to_string_lossy());
 
@@ -28,16 +37,33 @@ fn main()
         .context
         .borrow_mut()
         .io
-        .read_out(Box::new(|value| {
-            println!("{value}");
+        .read(Box::new(|output| match output {
+            Output::Display(value) => {
+                if value != &PyretValue::Nothing {
+                    println!("{value}");
+                }
+            }
+            Output::Print(value) => println!(
+                "{}",
+                value
+                    .lines()
+                    .map(|line| format!(" {line}"))
+                    .collect::<Vec<_>>()
+                    .join("\n")
+            ),
+            Output::Test => {}
         }));
 
-    interpreter.use_context::<trove::Global>();
+    if let Err(error) = interpreter.use_context("global") {
+        eprintln!("{error:?}");
+    }
 
     match interpreter.interpret(file_id) {
         Ok(values) => {
             for value in values.iter() {
-                println!("{value}");
+                if value.as_ref() != &PyretValue::Nothing {
+                    println!("{value}");
+                }
             }
         }
         Err(errors) => {
