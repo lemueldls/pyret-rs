@@ -1,4 +1,4 @@
-use crate::{io::Io, registrar::Registrar};
+use crate::{io::Io, value::registrar::Registrar};
 
 #[derive(Default)]
 pub struct Context {

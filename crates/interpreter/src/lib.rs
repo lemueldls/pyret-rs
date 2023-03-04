@@ -1,16 +1,19 @@
-pub mod trove;
-pub mod value;
+// #![feature(if_let_guard)]
 
 mod context;
-mod io;
-mod registrar;
+pub mod io;
+pub mod ops;
+pub mod trove;
+pub mod value;
 
 use std::{borrow::Borrow, cell::RefCell, rc::Rc};
 
 pub use context::Context;
+use pyret_error::{PyretError, PyretErrorKind, PyretResult};
 pub use pyret_file::graph::PyretGraph;
-pub use pyret_lexer::{ast, lex, prelude::*};
-use trove::{global::number, Trove};
+use pyret_lexer::ast::LetDeclarationKind;
+pub use pyret_lexer::{ast, lex, Token};
+use trove::global;
 use value::PyretValue;
 
 pub struct Interpreter {
@@ -29,8 +32,10 @@ impl Interpreter {
         }
     }
 
-    pub fn use_context<T: Trove>(&self) {
-        T::register(Rc::clone(&self.context));
+    pub fn use_context(&self, name: &str) -> PyretResult<()> {
+        trove::import_trove(name, &mut self.context.as_ref().borrow_mut())?;
+
+        Ok(())
     }
 
     pub fn interpret(&mut self, file_id: usize) -> Result<Box<[Rc<PyretValue>]>, Vec<PyretError>> {
@@ -61,7 +66,7 @@ impl Interpreter {
         let values = block
             .into_iter()
             .map(|token| match token {
-                ast::Statement::Keyword(keyword) => todo!("Unexpected keyword: {keyword:?}"),
+                ast::Statement::Symbol(symbol) => todo!("Unexpected symbol: {symbol:?}"),
                 ast::Statement::Expression(expr) => {
                     let expression = self.interpret_expression(expr)?;
 
@@ -111,7 +116,7 @@ impl Interpreter {
                             function.call(&args, Rc::clone(&self.context))
                         }
                         _ => Err(PyretErrorKind::InvalidFunctionApplication {
-                            span: app.ident.span(),
+                            span: app.ident.span().into(),
                         }),
                     }
                 } else {
@@ -142,21 +147,41 @@ impl Interpreter {
                 } else {
                     Err(PyretErrorKind::UnboundIdentifier {
                         ident: Box::from(name),
-                        span: ident.span(),
+                        span: ident.span().into(),
                     })
                 }
             }
-            ast::ExpressionStatement::BinaryOperator(binary_op) => {
-                let left = self.interpret_expression(*binary_op.left)?;
-                let right = self.interpret_expression(*binary_op.right)?;
+            ast::ExpressionStatement::BinaryOperator(binary_op) => match binary_op.operator {
+                ast::BinaryOperation::And => ops::and(*binary_op.left, *binary_op.right, self),
+                ast::BinaryOperation::Or => ops::or(*binary_op.left, *binary_op.right, self),
+                _ => {
+                    let left = self.interpret_expression(*binary_op.left)?;
+                    let left = left.as_ref();
 
-                match binary_op.operator {
-                    ast::BinaryOperation::Plus => number::plus(left.as_ref(), right.as_ref()),
-                    ast::BinaryOperation::Minus => number::minus(left.as_ref(), right.as_ref()),
-                    ast::BinaryOperation::Times => number::times(left.as_ref(), right.as_ref()),
-                    ast::BinaryOperation::Divide => number::divide(left.as_ref(), right.as_ref()),
+                    let right = self.interpret_expression(*binary_op.right)?;
+                    let right = right.as_ref();
+
+                    match binary_op.operator {
+                        ast::BinaryOperation::Plus => ops::plus(left, right),
+                        ast::BinaryOperation::Minus => ops::minus(left, right),
+                        ast::BinaryOperation::Times => ops::times(left, right),
+                        ast::BinaryOperation::Divide => ops::divide(left, right),
+                        ast::BinaryOperation::LessThan => ops::less_than(left, right),
+                        ast::BinaryOperation::LessThanOrEqual => {
+                            ops::less_than_or_equal(left, right)
+                        }
+                        ast::BinaryOperation::GreaterThan => ops::greater_than(left, right),
+                        ast::BinaryOperation::GreaterThanOrEqual => {
+                            ops::greater_than_or_equal(left, right)
+                        }
+                        ast::BinaryOperation::Equal => ops::equal(left, right),
+                        ast::BinaryOperation::NotEqual => ops::not_equal(left, right),
+                        ast::BinaryOperation::Is => ops::is(left, right),
+                        ast::BinaryOperation::IsRoughly => ops::is_roughly(left, right),
+                        _ => unreachable!(),
+                    }
                 }
-            }
+            },
             ast::ExpressionStatement::Parenthesis(paren) => self.interpret_expression(*paren.expr),
             ast::ExpressionStatement::Dot(..) => todo!(),
         }
@@ -164,14 +189,31 @@ impl Interpreter {
 
     fn interpret_declaration(&mut self, decl: ast::DeclarationStatement) -> PyretResult<()> {
         match decl {
-            ast::DeclarationStatement::Variable(var) => {
+            ast::DeclarationStatement::Check(check) => {
+                if let Some(label) = check.label {
+                    println!("Check block: {label:?}");
+                }
+
+                self.interpret_block(check.body)?;
+
+                println!();
+            }
+            ast::DeclarationStatement::Let(var) => {
+                if var.kind == LetDeclarationKind::RecursiveLet {
+                    self.context.borrow_mut().registrar.register_local_expr(
+                        var.ident.name.clone(),
+                        None,
+                        self.scope_depth,
+                    );
+                }
+
                 let value = self.interpret_expression(var.init)?;
 
                 self.type_check_identifier(&var.ident, &value)?;
 
                 self.context.borrow_mut().registrar.register_local_expr(
                     var.ident.name,
-                    value,
+                    Some(value),
                     self.scope_depth,
                 );
             }
@@ -200,7 +242,7 @@ impl Interpreter {
                             .registrar
                             .get_type(&ident.name)?
                         {
-                            if !r#type(value, Rc::clone(&self.context)) {
+                            if !r#type(Rc::clone(value), Rc::clone(&self.context)) {
                                 todo!("Type error: {annotation:?}")
                             }
                         }
