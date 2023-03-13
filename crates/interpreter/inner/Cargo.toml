@@ -1,0 +1,16 @@
+[package]
+edition = "2021"
+name = "pyret-interpreter-inner"
+version = "0.0.0"
+
+[features]
+default = ["fancy"]
+
+fancy = ["pyret-lexer/fancy"]
+
+[dependencies]
+pyret-error = { path = "../../error", verison = "0.0.0" }
+pyret-file = { path = "../../file", verison = "0.0.0" }
+pyret-interpreter-inner-macros = { path = "./macros", verison = "0.0.0" }
+pyret-lexer = { path = "../../lexer", verison = "0.0.0" }
+pyret-number = { path = "../../number", verison = "0.0.0" }
