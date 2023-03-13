@@ -11,7 +11,7 @@ fancy = ["pyret-error/fancy"]
 
 [dependencies]
 pyret-error = { path = "../error", verison = "0.0.0" }
-pyret-lexer-macros = { path = "macros", verison = "0.0.0" }
+pyret-lexer-macros = { path = "./macros", verison = "0.0.0" }
 pyret-number = { path = "../number", verison = "0.0.0" }
 
 [dev-dependencies]

@@ -7,6 +7,7 @@ crate::export![
     dot,
     function,
     ident,
+    import,
     number,
     parenthesis,
     string,

@@ -1,7 +1,7 @@
 use crate::{
     ast::{
         DeclarationStatement, EqualSymbol, ExpressionStatement, IdentifierExpression,
-        LetDeclaration, LetDeclarationKind, SymbolStatement,
+        ImportStatement, LetDeclaration, LetDeclarationKind, SymbolStatement,
     },
     prelude::*,
 };
@@ -11,6 +11,8 @@ use crate::{
 pub enum Statement {
     Symbol(SymbolStatement),
     Declaration(DeclarationStatement),
+    Import(ImportStatement),
+    // Provide(ProvideStatement),
     Expression(ExpressionStatement),
 }
 

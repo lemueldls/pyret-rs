@@ -10,7 +10,7 @@
     - [x] [Boolean Literals](https://www.pyret.org/docs/latest/s_literals.html#%28part._.Boolean_.Literals%29)
   - [ ] [Comments](https://www.pyret.org/docs/latest/s_comments.html)
   - [ ] [Programs](https://www.pyret.org/docs/latest/s_program.html)
-  - [ ] [Import Statements](https://www.pyret.org/docs/latest/Import_Statements.html)
+  - [x] [Import Statements](https://www.pyret.org/docs/latest/Import_Statements.html)
   - [ ] [Provide Statements](https://www.pyret.org/docs/latest/Provide_Statements.html)
   - [ ] [Bindings](https://www.pyret.org/docs/latest/Bindings.html)
     - [x] [Name bindings](https://www.pyret.org/docs/latest/Bindings.html#%28part._.Name_bindings%29)
