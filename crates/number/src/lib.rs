@@ -11,7 +11,7 @@ pub use num_rational::BigRational;
 use num_traits::FromPrimitive;
 pub use num_traits::{One, Signed, ToPrimitive, Zero};
 
-type Result<T> = std::result::Result<T, &'static str>;
+type Result<T> = std::result::Result<T, Box<str>>;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum PyretNumber {
@@ -20,11 +20,12 @@ pub enum PyretNumber {
 }
 
 impl PyretNumber {
-    pub fn to_exact(&self) -> Result<Self> {
-        Ok(match self {
+    #[must_use]
+    pub fn to_exact(&self) -> Self {
+        match self {
             exact @ Self::Exact(..) => exact.clone(),
             Self::Rough(number) => Self::Exact(BigRational::from_f64(*number).unwrap()),
-        })
+        }
     }
 
     pub fn to_rough(&self) -> Result<Self> {
@@ -61,7 +62,7 @@ impl PyretNumber {
     pub fn is_equal(&self, other: &Self) -> Result<bool> {
         match (self, other) {
             (Self::Exact(exact), Self::Exact(other_exact)) => Ok(exact == other_exact),
-            _ => Err("roughnums cannot be compared for equality"),
+            _ => Err(Box::from("roughnums cannot be compared for equality")),
         }
     }
 
@@ -69,7 +70,7 @@ impl PyretNumber {
         match self.partial_cmp(other) {
             Some(Ordering::Less | Ordering::Equal) => Ok(self),
             Some(Ordering::Greater) => Ok(other),
-            None => Err("roughnum overflow"),
+            None => Err(Box::from("roughnum overflow")),
         }
     }
 
@@ -77,7 +78,38 @@ impl PyretNumber {
         match self.partial_cmp(other) {
             Some(Ordering::Less | Ordering::Equal) => Ok(other),
             Some(Ordering::Greater) => Ok(self),
-            None => Err("roughnum overflow"),
+            None => Err(Box::from("roughnum overflow")),
         }
+    }
+
+    #[must_use]
+    pub fn is_within_abs(&self, other: &Self, tol: &Self) -> bool {
+        (self.to_exact() - other.to_exact()).abs() <= tol.to_exact()
+    }
+
+    #[must_use]
+    pub fn is_within_rel(&self, other: &Self, tol: &Self) -> bool {
+        let diff = (self.to_exact() - other.to_exact()).abs();
+
+        let self_abs = self.to_exact().abs();
+        let other_abs = other.to_exact().abs();
+
+        let max = self_abs.max(&other_abs).unwrap();
+
+        diff <= max * &tol.to_exact()
+    }
+
+    pub fn is(&self, other: &Self) -> Result<bool> {
+        match (self, other) {
+            (Self::Exact(exact), Self::Exact(other_exact)) => Ok(exact == other_exact),
+            _ => Err(Box::from("roughnums cannot be compared for equality")),
+        }
+    }
+
+    #[must_use]
+    pub fn is_roughly(&self, other: &Self) -> bool {
+        let tol = &Self::Exact(BigRational::from_float(0.000_001).unwrap());
+
+        self.is_within_rel(other, tol)
     }
 }

@@ -292,19 +292,11 @@ impl CheckedRem for PyretNumber {
 
 impl PartialOrd for PyretNumber {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        match (self, other) {
+        match (self.to_exact(), other.to_exact()) {
             (Self::Exact(left_exact), Self::Exact(right_exact)) => {
-                left_exact.partial_cmp(right_exact)
+                left_exact.partial_cmp(&right_exact)
             }
-            (Self::Exact(left_exact), Self::Rough(right_rough)) => {
-                left_exact.to_f64()?.partial_cmp(right_rough)
-            }
-            (Self::Rough(left_rough), Self::Exact(right_exact)) => {
-                left_rough.partial_cmp(&right_exact.to_f64()?)
-            }
-            (Self::Rough(left_rough), Self::Rough(right_rough)) => {
-                left_rough.partial_cmp(right_rough)
-            }
+            _ => unreachable!(),
         }
     }
 }

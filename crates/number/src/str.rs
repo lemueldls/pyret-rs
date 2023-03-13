@@ -25,6 +25,7 @@ impl Display for PyretNumber {
     }
 }
 
+#[derive(Debug)]
 pub enum PyretNumberParseError {
     InvalidNumber,
     DivideByZero,

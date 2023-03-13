@@ -1,5 +1,9 @@
 [package]
+authors = ["Lemuel DLS"]
+description = "An implementation of Pyret's numbers."
 edition = "2021"
+keywords = ["pyret"]
+license = "Apache-2.0"
 name = "pyret-number"
 version = "0.0.0"
 
@@ -9,7 +13,8 @@ default = []
 serde = ["num-bigint/serde", "num-rational/serde"]
 
 [dependencies]
-num-bigint = "0.4.3"
-num-integer = "0.1.45"
-num-rational = "0.4.1"
-num-traits = "0.2.15"
+num-bigint = { version = "0.4.3", default-features = false }
+num-rational = { version = "0.4.1", default-features = false, features = [
+  "num-bigint",
+] }
+num-traits = { version = "0.2.15", default-features = false }
