@@ -1,10 +1,15 @@
-// #![feature(if_let_guard)]
+#![feature(once_cell, array_try_map)]
 
 mod context;
 pub mod io;
 pub mod ops;
 pub mod trove;
 pub mod value;
+#[macro_use]
+pub mod macros;
+
+#[macro_use]
+extern crate pyret_interpreter_macros;
 
 use std::{borrow::Borrow, cell::RefCell, rc::Rc};
 
@@ -13,13 +18,11 @@ use pyret_error::{PyretError, PyretErrorKind, PyretResult};
 pub use pyret_file::graph::PyretGraph;
 use pyret_lexer::ast::LetDeclarationKind;
 pub use pyret_lexer::{ast, lex, Token};
-use trove::global;
 use value::PyretValue;
 
 pub struct Interpreter {
     pub graph: Box<dyn PyretGraph>,
     pub context: Rc<RefCell<Context>>,
-    scope_depth: usize,
 }
 
 impl Interpreter {
@@ -28,12 +31,16 @@ impl Interpreter {
         Self {
             graph: Box::new(graph),
             context: Rc::new(RefCell::new(Context::default())),
-            scope_depth: 0,
         }
     }
 
+    #[must_use]
+    pub fn depth(&self) -> usize {
+        self.context.as_ref().borrow().registrar.depth
+    }
+
     pub fn use_context(&self, name: &str) -> PyretResult<()> {
-        trove::import_trove(name, &mut self.context.as_ref().borrow_mut())?;
+        trove::import_trove(name, &mut self.context.as_ref().borrow_mut().registrar)?;
 
         Ok(())
     }
@@ -49,7 +56,7 @@ impl Interpreter {
             }
         };
 
-        match self.interpret_block(stmts) {
+        match self.interpret_block(stmts, self.depth()) {
             Ok(values) => Ok(values),
             Err(error) => Err(vec![PyretError::new(error, file_id)]),
         }
@@ -58,24 +65,22 @@ impl Interpreter {
     fn interpret_block(
         &mut self,
         block: Vec<ast::Statement>,
+        depth: usize,
     ) -> PyretResult<Box<[Rc<PyretValue>]>> {
-        self.scope_depth += 1;
-
-        let depth = self.scope_depth;
-
         let values = block
             .into_iter()
             .map(|token| match token {
                 ast::Statement::Symbol(symbol) => todo!("Unexpected symbol: {symbol:?}"),
-                ast::Statement::Expression(expr) => {
-                    let expression = self.interpret_expression(expr)?;
-
-                    Ok(Some(expression))
-                }
                 ast::Statement::Declaration(decl) => {
                     self.interpret_declaration(decl)?;
 
                     Ok(None)
+                }
+                ast::Statement::Import(import) => todo!("Import: {import:?}"),
+                ast::Statement::Expression(expr) => {
+                    let expression = self.interpret_expression(expr)?;
+
+                    Ok(Some(expression))
                 }
             })
             .filter_map(Result::transpose)
@@ -85,9 +90,7 @@ impl Interpreter {
             .as_ref()
             .borrow_mut()
             .registrar
-            .pop_scope(depth);
-
-        self.scope_depth -= 1;
+            .pop_depth(depth);
 
         values
     }
@@ -104,27 +107,21 @@ impl Interpreter {
                     .map(|arg| self.interpret_expression(arg))
                     .collect::<PyretResult<Vec<_>>>()?;
 
-                if let Some(value) = self
-                    .context
-                    .as_ref()
-                    .borrow()
-                    .registrar
-                    .get_value(&app.ident.name)?
-                {
-                    match value.as_ref().borrow() {
-                        PyretValue::Function(function) => {
-                            function.call(&args, Rc::clone(&self.context))
-                        }
-                        _ => Err(PyretErrorKind::InvalidFunctionApplication {
-                            span: app.ident.span().into(),
-                        }),
+                let context = self.context.as_ref().borrow();
+
+                let declaration = context.registrar.get_value(&app.ident.name)?;
+
+                match declaration.value.as_ref().borrow() {
+                    PyretValue::Function(function) => {
+                        function.call(&args, Rc::clone(&self.context))
                     }
-                } else {
-                    todo!()
+                    _ => Err(PyretErrorKind::InvalidFunctionApplication {
+                        span: app.ident.span().into(),
+                    }),
                 }
             }
             ast::ExpressionStatement::Block(block) => {
-                let values = self.interpret_block(block.body)?;
+                let values = self.interpret_block(block.body, self.depth())?;
 
                 Ok(Rc::clone(values.last().unwrap()))
             }
@@ -142,14 +139,10 @@ impl Interpreter {
             ast::ExpressionStatement::Identifier(ident) => {
                 let name = &*ident.name;
 
-                if let Some(value) = self.context.borrow_mut().registrar.get_value(name)? {
-                    Ok(Rc::clone(value))
-                } else {
-                    Err(PyretErrorKind::UnboundIdentifier {
-                        ident: Box::from(name),
-                        span: ident.span().into(),
-                    })
-                }
+                let context = self.context.borrow_mut();
+                let declaration = context.registrar.get_value(name)?;
+
+                Ok(Rc::clone(&declaration.value))
             }
             ast::ExpressionStatement::BinaryOperator(binary_op) => match binary_op.operator {
                 ast::BinaryOperation::And => ops::and(*binary_op.left, *binary_op.right, self),
@@ -194,28 +187,26 @@ impl Interpreter {
                     println!("Check block: {label:?}");
                 }
 
-                self.interpret_block(check.body)?;
+                self.interpret_block(check.body, self.depth())?;
 
                 println!();
             }
             ast::DeclarationStatement::Let(var) => {
                 if var.kind == LetDeclarationKind::RecursiveLet {
-                    self.context.borrow_mut().registrar.register_local_expr(
-                        var.ident.name.clone(),
-                        None,
-                        self.scope_depth,
-                    );
+                    self.context
+                        .borrow_mut()
+                        .registrar
+                        .register_local_expr(var.ident.name.clone(), None);
                 }
 
                 let value = self.interpret_expression(var.init)?;
 
                 self.type_check_identifier(&var.ident, &value)?;
 
-                self.context.borrow_mut().registrar.register_local_expr(
-                    var.ident.name,
-                    Some(value),
-                    self.scope_depth,
-                );
+                self.context
+                    .borrow_mut()
+                    .registrar
+                    .register_local_expr(var.ident.name, Some(value));
             }
         }
 

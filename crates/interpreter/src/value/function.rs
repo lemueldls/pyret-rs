@@ -1,4 +1,4 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, rc::Rc, sync::Arc};
 
 use super::TypePredicate;
 use crate::{Context, PyretResult, PyretValue};
@@ -39,7 +39,7 @@ impl PyretFunction {
     ) -> PyretResult<Rc<PyretValue>> {
         if args.len() == self.param_types.len() {
             for generic in self.generic_types.iter() {
-                let any = Rc::clone(&context.borrow().registrar.get_type("Any")?.unwrap());
+                let any = Arc::clone(&context.borrow().registrar.get_type("Any")?.unwrap());
 
                 context
                     .borrow_mut()

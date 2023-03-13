@@ -174,8 +174,7 @@ pub fn is(left: &PyretValue, right: &PyretValue) -> PyretResult<Rc<PyretValue>> 
 pub fn is_roughly(left: &PyretValue, right: &PyretValue) -> PyretResult<Rc<PyretValue>> {
     match (left, right) {
         (PyretValue::Number(left_number), PyretValue::Number(right_number)) => {
-            if (left_number.to_f64().unwrap() - right_number.to_f64().unwrap()).abs() < f64::EPSILON
-            {
+            if left_number.is_roughly(right_number) {
                 println!("  {left} is roughly {right}");
             } else {
                 eprintln!("  {left} is not roughly {right}");

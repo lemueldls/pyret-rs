@@ -10,7 +10,7 @@ use std::fs;
 use clap::Parser;
 use graph::FsGraph;
 // use pyret_error::miette;
-use pyret_interpreter::{io::Output, trove, value::PyretValue, Interpreter, PyretGraph};
+use pyret_interpreter::{io::Output, value::PyretValue, Interpreter, PyretGraph};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]

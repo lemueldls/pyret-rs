@@ -170,9 +170,3 @@ pub enum PyretErrorKind {
     #[error("{0}")]
     RaiseRuntime(Box<str>),
 }
-
-impl From<&str> for PyretErrorKind {
-    fn from(s: &str) -> Self {
-        Self::RaiseRuntime(Box::from(s))
-    }
-}

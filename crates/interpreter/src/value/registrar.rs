@@ -1,4 +1,4 @@
-use std::{collections::HashMap, rc::Rc};
+use std::{collections::HashMap, rc::Rc, sync::Arc};
 
 use super::TypePredicate;
 use crate::{
@@ -6,14 +6,15 @@ use crate::{
     PyretResult,
 };
 
-enum RegistrarDeclaration {
-    Value(PyretValueScoped),
+enum RegisteredDeclaration {
+    Value(Option<PyretValueScoped>),
     Type(TypePredicate),
 }
 
 #[derive(Default)]
 pub struct Registrar {
-    declarations: HashMap<Box<str>, RegistrarDeclaration>,
+    pub depth: usize,
+    declarations: HashMap<Box<str>, RegisteredDeclaration>,
 }
 
 impl Registrar {
@@ -26,21 +27,16 @@ impl Registrar {
 
         self.declarations.insert(
             Box::from(name),
-            RegistrarDeclaration::Value(PyretValueScoped::new_builtin(Rc::clone(&value))),
+            RegisteredDeclaration::Value(Some(PyretValueScoped::new_builtin(Rc::clone(&value)))),
         );
 
         value
     }
 
-    pub fn register_local_expr(
-        &mut self,
-        name: Box<str>,
-        value: Option<Rc<PyretValue>>,
-        depth: usize,
-    ) {
+    pub fn register_local_expr(&mut self, name: Box<str>, value: Option<Rc<PyretValue>>) {
         if let Some(shadowing) = self.declarations.get(&name) {
-            if let RegistrarDeclaration::Value(shadowing) = shadowing {
-                if shadowing.value.is_some() {
+            if let RegisteredDeclaration::Value(shadowing) = shadowing {
+                if let Some(shadowing) = shadowing {
                     if shadowing.is_builtin {
                         todo!(
                             "The declaration of {name} shadows a built-in declaration of the same name."
@@ -58,8 +54,12 @@ impl Registrar {
 
         self.declarations.insert(
             name,
-            RegistrarDeclaration::Value(PyretValueScoped::new_local(value, depth)),
+            RegisteredDeclaration::Value(
+                value.map(|value| PyretValueScoped::new_local(value, self.depth)),
+            ),
         );
+
+        self.depth += 1;
     }
 
     pub fn register_builtin_function<const N: usize>(
@@ -70,16 +70,77 @@ impl Registrar {
     ) -> PyretResult<FunctionSignature> {
         self.declarations.insert(
             Box::from(name),
-            RegistrarDeclaration::Value(PyretValueScoped::new_builtin(Rc::new(
+            RegisteredDeclaration::Value(Some(PyretValueScoped::new_builtin(Rc::new(
                 PyretValue::Function(PyretFunction::new(
                     Box::from(name),
                     Box::from_iter([]),
-                    Box::from_iter(param_types.map(Rc::clone)),
-                    Rc::clone(&self.get_type("Any")?.unwrap()),
+                    Box::from_iter(param_types.map(Arc::clone)),
+                    self.get_type("Any")?.unwrap(),
                     Rc::clone(&body),
                 )),
+            )))),
+        );
+
+        Ok(body)
+    }
+
+    pub fn register_function(
+        &mut self,
+        name: Box<str>,
+        param_types: Box<[TypePredicate]>,
+        return_type: TypePredicate,
+        body: FunctionSignature,
+    ) -> PyretResult<FunctionSignature> {
+        self.declarations.insert(
+            name.clone(),
+            RegisteredDeclaration::Value(Some(PyretValueScoped::new_builtin(Rc::new(
+                PyretValue::Function(PyretFunction::new(
+                    name,
+                    Box::from_iter([]),
+                    param_types,
+                    return_type,
+                    Rc::clone(&body),
+                )),
+            )))),
+        );
+
+        Ok(body)
+    }
+
+    pub fn register_local_function(
+        &mut self,
+        name: Box<str>,
+        param_types: &[Box<str>],
+        return_type: &str,
+        body: FunctionSignature,
+    ) -> PyretResult<FunctionSignature> {
+        let param_types = param_types
+            .iter()
+            .map(|name| {
+                self.get_type(name)?
+                    .ok_or_else(|| todo!("The type {name} has not been previously defined."))
+            })
+            .collect::<PyretResult<_>>()?;
+
+        let return_type = self
+            .get_type(return_type)?
+            .ok_or_else(|| todo!("The type {return_type} has not been previously defined."))?;
+
+        self.declarations.insert(
+            name.clone(),
+            RegisteredDeclaration::Value(Some(PyretValueScoped::new_local(
+                Rc::new(PyretValue::Function(PyretFunction::new(
+                    name,
+                    Box::from_iter([]),
+                    param_types,
+                    return_type,
+                    Rc::clone(&body),
+                ))),
+                self.depth,
             ))),
         );
+
+        self.depth += 1;
 
         Ok(body)
     }
@@ -91,7 +152,7 @@ impl Registrar {
     ) -> PyretResult<TypePredicate> {
         self.declarations.insert(
             Box::from(name),
-            RegistrarDeclaration::Type(Rc::clone(&predicate)),
+            RegisteredDeclaration::Type(Arc::clone(&predicate)),
         );
 
         Ok(predicate)
@@ -99,7 +160,7 @@ impl Registrar {
 
     pub fn register_local_type(&mut self, name: Box<str>, predicate: TypePredicate) {
         if let Some(shadowing) = self.declarations.get(&name) {
-            if let RegistrarDeclaration::Type(predicate) = shadowing {
+            if let RegisteredDeclaration::Type(predicate) = shadowing {
                 todo!(
                     "This declaration of a name conflicts with an earlier declaration of the same name:"
                 );
@@ -108,15 +169,15 @@ impl Registrar {
             }
         } else {
             self.declarations
-                .insert(Box::from(name), RegistrarDeclaration::Type(predicate));
+                .insert(name, RegisteredDeclaration::Type(predicate));
         }
     }
 
-    pub fn get_value(&self, name: &str) -> PyretResult<Option<&Rc<PyretValue>>> {
+    pub fn get_value(&self, name: &str) -> PyretResult<&PyretValueScoped> {
         if let Some(declaration) = self.declarations.get(name) {
-            if let RegistrarDeclaration::Value(declaration) = declaration {
-                if let Some(value) = &declaration.value {
-                    Ok(Some(value))
+            if let RegisteredDeclaration::Value(declaration) = declaration {
+                if let Some(value) = &declaration {
+                    Ok(value)
                 } else {
                     Err(todo!(
                         "The identifier is unbound. Although it has been previously defined, it is being used before it has been is initialized to a value."
@@ -126,14 +187,16 @@ impl Registrar {
                 Err(todo!("The declaration of {name} is not a value."))
             }
         } else {
-            Ok(None)
+            Err(todo!(
+                "The identifier is unbound. It has not been previously defined."
+            ))
         }
     }
 
     pub fn get_type(&self, name: &str) -> PyretResult<Option<TypePredicate>> {
         if let Some(declaration) = self.declarations.get(name) {
-            if let RegistrarDeclaration::Type(predicate) = declaration {
-                Ok(Some(Rc::clone(predicate)))
+            if let RegisteredDeclaration::Type(predicate) = declaration {
+                Ok(Some(Arc::clone(predicate)))
             } else {
                 Err(todo!("The declaration of {name} is not a type."))
             }
@@ -142,10 +205,16 @@ impl Registrar {
         }
     }
 
-    pub fn pop_scope(&mut self, depth: usize) {
+    pub fn pop_depth(&mut self, depth: usize) {
         self.declarations.retain(|_, declaration| {
-            if let RegistrarDeclaration::Value(value) = declaration {
-                value.depth != depth
+            if let RegisteredDeclaration::Value(declaration) = declaration {
+                if declaration.as_ref().unwrap().depth > depth {
+                    self.depth -= 1;
+
+                    false
+                } else {
+                    true
+                }
             } else {
                 true
             }

@@ -1,36 +1,40 @@
-use std::cell::{RefCell, RefMut};
+use std::rc::Rc;
 
 use pyret_error::PyretResult;
 
-use crate::{context::Context, PyretValue, Rc};
+use crate::{
+    trove::{Any, Trove},
+    ty,
+    value::registrar::Registrar,
+    PyretValue,
+};
 
-pub fn register(context: &mut RefMut<Context>) -> PyretResult<()> {
-    let any = &context.registrar.get_type("Any")?.unwrap();
+pub fn register(registrar: &mut Registrar) -> PyretResult<()> {
+    ModBoolean::register(registrar)
+}
 
-    let boolean = &context.registrar.register_builtin_type(
-        "Boolean",
-        Rc::new(|value, _context| matches!(value.as_ref(), PyretValue::Boolean(..))),
-    )?;
+ty!(Boolean, |value, _context| matches!(
+    value.as_ref(),
+    PyretValue::Boolean(..)
+));
 
-    context.registrar.register_builtin_function(
-        "is-boolean",
-        [any],
-        Rc::new(|args, _context| {
-            Ok(Rc::new(PyretValue::Boolean(matches!(
-                args[0].as_ref(),
-                PyretValue::Boolean(..)
-            ))))
-        }),
-    )?;
+struct ModBoolean;
 
-    context.registrar.register_builtin_function(
-        "not",
-        [boolean],
-        Rc::new(|args, _context| match args[0].as_ref() {
-            PyretValue::Boolean(value) => Ok(Rc::new(PyretValue::Boolean(!value))),
+#[module]
+impl ModBoolean {
+    #[must_use]
+    pub fn is_boolean(value: &Any) -> Boolean {
+        Boolean(Rc::new(PyretValue::Boolean(matches!(
+            value.as_ref(),
+            PyretValue::Boolean(..)
+        ))))
+    }
+
+    #[must_use]
+    pub fn not(value: &Boolean) -> Boolean {
+        match value.as_ref() {
+            PyretValue::Boolean(value) => Boolean(Rc::new(PyretValue::Boolean(!value))),
             _ => unreachable!(),
-        }),
-    )?;
-
-    Ok(())
+        }
+    }
 }

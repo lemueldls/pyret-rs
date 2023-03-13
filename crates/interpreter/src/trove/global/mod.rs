@@ -4,20 +4,23 @@ pub mod number;
 pub mod ops;
 pub mod string;
 
-use std::{cell::RefMut, rc::Rc};
+use std::{cell::RefMut, rc::Rc, sync::Arc};
 
 use pyret_error::{PyretErrorKind, PyretResult};
 
-use crate::{context::Context, io::Output, value::PyretValue};
+use crate::{
+    context::Context,
+    io::Output,
+    trove::Trove,
+    value::{registrar::Registrar, PyretValue},
+};
 
-pub fn register(context: &mut RefMut<Context>) -> PyretResult<()> {
-    super::constants::register(context)?;
+pub fn register(registrar: &mut Registrar) -> PyretResult<()> {
+    super::constants::register(registrar)?;
 
-    let any = &context
-        .registrar
-        .register_builtin_type("Any", Rc::new(|_value, _context| true))?;
+    let any = &registrar.register_builtin_type("Any", Arc::new(|_value, _context| true))?;
 
-    context.registrar.register_builtin_function(
+    registrar.register_builtin_function(
         "display",
         [any],
         Rc::new(|args, context| {
@@ -29,7 +32,7 @@ pub fn register(context: &mut RefMut<Context>) -> PyretResult<()> {
         }),
     )?;
 
-    context.registrar.register_builtin_function(
+    registrar.register_builtin_function(
         "print",
         [any],
         Rc::new(|args, context| {
@@ -41,7 +44,7 @@ pub fn register(context: &mut RefMut<Context>) -> PyretResult<()> {
         }),
     )?;
 
-    context.registrar.register_builtin_function(
+    registrar.register_builtin_function(
         "raise",
         [any],
         Rc::new(|args, _context| {
@@ -51,11 +54,11 @@ pub fn register(context: &mut RefMut<Context>) -> PyretResult<()> {
         }),
     )?;
 
-    boolean::register(context)?;
-    nothing::register(context)?;
-    number::register(context)?;
-    ops::register(context)?;
-    string::register(context)?;
+    boolean::register(registrar)?;
+    nothing::register(registrar)?;
+    number::register(registrar)?;
+    ops::register(registrar)?;
+    string::register(registrar)?;
 
     Ok(())
 }

@@ -9,6 +9,7 @@ default = ["fancy"]
 fancy = ["pyret-file/fancy"]
 
 [dependencies]
-line-col = "0.2.1"
 pyret-file = { path = "../file", verison = "0.0.0" }
-thiserror = "1.0.38"
+
+line-col = "0.2.1"
+thiserror = "1.0.39"

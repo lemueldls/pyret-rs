@@ -1,24 +1,30 @@
 pub mod function;
 pub mod registrar;
 
-use std::{cell::RefCell, fmt, rc::Rc};
+use std::{
+    cell::{Ref, RefCell},
+    fmt,
+    rc::Rc,
+    sync::Arc,
+};
 
 pub use function::PyretFunction;
+use pyret_error::PyretResult;
 use pyret_number::PyretNumber;
 
 use crate::Context;
 
-pub type TypePredicate = Rc<dyn Fn(Rc<PyretValue>, Rc<RefCell<Context>>) -> bool>;
+pub type TypePredicate = Arc<dyn Fn(Rc<PyretValue>, Rc<RefCell<Context>>) -> bool + Send + Sync>;
 
 pub struct PyretValueScoped {
-    pub value: Option<Rc<PyretValue>>,
+    pub value: Rc<PyretValue>,
     pub depth: usize,
     pub is_builtin: bool,
 }
 
 impl PyretValueScoped {
     #[must_use]
-    pub const fn new_local(value: Option<Rc<PyretValue>>, depth: usize) -> Self {
+    pub const fn new_local(value: Rc<PyretValue>, depth: usize) -> Self {
         Self {
             value,
             depth,
@@ -29,7 +35,7 @@ impl PyretValueScoped {
     #[must_use]
     pub fn new_builtin(value: Rc<PyretValue>) -> Self {
         Self {
-            value: Some(value),
+            value,
             depth: 0,
             is_builtin: true,
         }

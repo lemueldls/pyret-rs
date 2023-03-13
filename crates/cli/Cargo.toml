@@ -10,9 +10,10 @@ name = "pyret"
 version = "0.0.0"
 
 [dependencies]
-ansi_term = "0.12.1"
-clap = { version = "4.1.6", features = ["derive"] }
-dirs-next = "2.0.0"
 pyret-error = { path = "../error", verison = "0.0.0" }
 pyret-file = { path = "../file", verison = "0.0.0" }
 pyret-interpreter = { path = "../interpreter", verison = "0.0.0" }
+
+ansi_term = "0.12.1"
+clap = { version = "4.1.8", features = ["derive"] }
+dirs-next = "2.0.0"
