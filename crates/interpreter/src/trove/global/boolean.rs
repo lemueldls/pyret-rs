@@ -1,16 +1,12 @@
-use std::rc::Rc;
+use std::{cell::RefCell, rc::Rc};
 
 use pyret_error::PyretResult;
 
-use crate::{
-    trove::{Any, Trove},
-    ty,
-    value::registrar::Registrar,
-    PyretValue,
-};
+use super::Any;
+use crate::{trove::Trove, ty, value::context::Context, PyretValue};
 
-pub fn register(registrar: &mut Registrar) -> PyretResult<()> {
-    ModBoolean::register(registrar)
+pub fn register(context: Rc<RefCell<Context>>) -> PyretResult<()> {
+    ModBoolean::register(context)
 }
 
 ty!(Boolean, |value, _context| matches!(

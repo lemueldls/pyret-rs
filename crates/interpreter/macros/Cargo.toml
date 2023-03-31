@@ -1,12 +1,17 @@
 [package]
 edition = "2021"
 name = "pyret-interpreter-macros"
-version = "0.0.0"
+version = "0.1.0-alpha.0"
 
 [lib]
 proc-macro = true
 
 [dependencies]
+pyret-lexer = { path = "../../lexer", version = "0.1.0-alpha.0", features = [
+  "serde",
+] }
+
+bincode = { version = "2.0.0-rc.2", features = ["serde"] }
 convert_case = "0.6.0"
 proc-macro-error = "1.0.4"
 proc-macro2 = "1.0.51"

@@ -2,85 +2,88 @@ use std::{
     cell::{LazyCell, RefCell, RefMut},
     cmp::Ordering,
     ops::Deref,
+    rc::Rc,
     sync::Arc,
 };
 
 use pyret_error::PyretErrorKind;
 use pyret_number::{PyretNumber, Signed};
 
-use super::boolean::Boolean;
+use super::{boolean::Boolean, Any};
 use crate::{
-    context::Context,
     ty,
-    value::{registrar::Registrar, TypePredicate},
-    PyretResult, PyretValue, Rc,
+    value::{
+        context::{Context, Register},
+        TypePredicate,
+    },
+    PyretResult, PyretValue,
 };
 
-pub fn register(registrar: &mut Registrar) -> PyretResult<()> {
-    let any = &registrar.get_type("Any")?.unwrap();
+pub fn register(context: Rc<RefCell<Context>>) -> PyretResult<()> {
+    let any = &Any::predicate();
 
-    let number = &registrar.register_builtin_type(
+    let number = &context.register_builtin_type(
         "Number",
         Arc::new(|value, _context| matches!(value.as_ref(), PyretValue::Number(..))),
     )?;
 
-    registrar.register_builtin_type(
+    context.register_builtin_type(
         "Exactnum",
         Arc::new(|value, _context| {
             matches!(value.as_ref(), PyretValue::Number(PyretNumber::Exact(..)))
         }),
     )?;
 
-    registrar.register_builtin_type(
+    context.register_builtin_type(
         "Roughnum",
         Arc::new(|value, _context| {
             matches!(value.as_ref(), PyretValue::Number(PyretNumber::Rough(..)))
         }),
     )?;
 
-    let num_integer = &registrar.register_builtin_type(
+    let num_integer = &context.register_builtin_type(
         "NumInteger",
         Arc::new(|value, _context| {
             matches!(value.as_ref(), PyretValue::Number(PyretNumber::Exact(number)) if number.is_integer())
-        }),
+        })
     )?;
 
-    registrar.register_builtin_type(
+    context.register_builtin_type(
         "NumRational",
         Arc::new(|value, _context| {
             matches!(value.as_ref(), PyretValue::Number(PyretNumber::Exact(..)))
         }),
     )?;
 
-    registrar.register_builtin_type(
+    context.register_builtin_type(
         "NumPositive",
         Arc::new(|value, _context| {
             matches!(value.as_ref(), PyretValue::Number(number) if number.is_positive())
-        }),
+        })
     )?;
 
-    registrar.register_builtin_type(
+    context.register_builtin_type(
         "NumNegative",
         Arc::new(|value, _context| {
             matches!(value.as_ref(), PyretValue::Number(number) if number.is_negative())
-        }),
+        })
     )?;
 
-    registrar.register_builtin_type(
+    context.register_builtin_type(
         "NumNonPositive",
         Arc::new(|value, _context| {
             matches!(value.as_ref(), PyretValue::Number(number) if number.is_non_positive())
-        }),
+        })
     )?;
 
-    registrar.register_builtin_type(
+    context.register_builtin_type(
         "NumNonNegative",
         Arc::new(|value, _context| {
             matches!(value.as_ref(), PyretValue::Number(number) if number.is_non_negative())
-        }),
+        })
     )?;
 
-    registrar.register_builtin_function(
+    context.register_builtin_function(
         "is-number",
         [any],
         Rc::new(|args, _context| {
@@ -91,7 +94,7 @@ pub fn register(registrar: &mut Registrar) -> PyretResult<()> {
         }),
     )?;
 
-    registrar.register_builtin_function(
+    context.register_builtin_function(
         "is-equal",
         [number, number],
         Rc::new(
@@ -106,7 +109,7 @@ pub fn register(registrar: &mut Registrar) -> PyretResult<()> {
         ),
     )?;
 
-    registrar.register_builtin_function(
+    context.register_builtin_function(
         "num-max",
         [number, number],
         Rc::new(|args, _context| {
@@ -126,7 +129,7 @@ pub fn register(registrar: &mut Registrar) -> PyretResult<()> {
         }),
     )?;
 
-    registrar.register_builtin_function(
+    context.register_builtin_function(
         "num-min",
         [number, number],
         Rc::new(|args, _context| {
@@ -146,7 +149,7 @@ pub fn register(registrar: &mut Registrar) -> PyretResult<()> {
         }),
     )?;
 
-    registrar.register_builtin_function(
+    context.register_builtin_function(
         "num-abs",
         [number],
         Rc::new(|args, _context| match args[0].as_ref() {
@@ -155,7 +158,7 @@ pub fn register(registrar: &mut Registrar) -> PyretResult<()> {
         }),
     )?;
 
-    registrar.register_builtin_function(
+    context.register_builtin_function(
         "num-sin",
         [number],
         Rc::new(|args, _context| match args[0].as_ref() {
@@ -166,7 +169,7 @@ pub fn register(registrar: &mut Registrar) -> PyretResult<()> {
         }),
     )?;
 
-    registrar.register_builtin_function(
+    context.register_builtin_function(
         "num-cos",
         [number],
         Rc::new(|args, _context| match args[0].as_ref() {
@@ -177,7 +180,7 @@ pub fn register(registrar: &mut Registrar) -> PyretResult<()> {
         }),
     )?;
 
-    registrar.register_builtin_function(
+    context.register_builtin_function(
         "num-tan",
         [number],
         Rc::new(|args, _context| match args[0].as_ref() {
@@ -188,7 +191,7 @@ pub fn register(registrar: &mut Registrar) -> PyretResult<()> {
         }),
     )?;
 
-    registrar.register_builtin_function(
+    context.register_builtin_function(
         "num-asin",
         [number],
         Rc::new(|args, _context| match args[0].as_ref() {
@@ -199,7 +202,7 @@ pub fn register(registrar: &mut Registrar) -> PyretResult<()> {
         }),
     )?;
 
-    registrar.register_builtin_function(
+    context.register_builtin_function(
         "num-acos",
         [number],
         Rc::new(|args, _context| match args[0].as_ref() {
@@ -210,7 +213,7 @@ pub fn register(registrar: &mut Registrar) -> PyretResult<()> {
         }),
     )?;
 
-    registrar.register_builtin_function(
+    context.register_builtin_function(
         "num-atan",
         [number],
         Rc::new(|args, _context| match args[0].as_ref() {
@@ -221,7 +224,7 @@ pub fn register(registrar: &mut Registrar) -> PyretResult<()> {
         }),
     )?;
 
-    registrar.register_builtin_function(
+    context.register_builtin_function(
         "num-atan2",
         [number, number],
         Rc::new(
@@ -234,7 +237,7 @@ pub fn register(registrar: &mut Registrar) -> PyretResult<()> {
         ),
     )?;
 
-    registrar.register_builtin_function(
+    context.register_builtin_function(
         "num-modulo",
         [num_integer, num_integer],
         Rc::new(
@@ -247,7 +250,7 @@ pub fn register(registrar: &mut Registrar) -> PyretResult<()> {
         ),
     )?;
 
-    registrar.register_builtin_function(
+    context.register_builtin_function(
         "num-truncate",
         [number],
         Rc::new(|args, _context| match args[0].as_ref() {
@@ -258,7 +261,7 @@ pub fn register(registrar: &mut Registrar) -> PyretResult<()> {
         }),
     )?;
 
-    registrar.register_builtin_function(
+    context.register_builtin_function(
         "num-sqrt",
         [number],
         Rc::new(|args, _context| match args[0].as_ref() {
@@ -269,7 +272,7 @@ pub fn register(registrar: &mut Registrar) -> PyretResult<()> {
         }),
     )?;
 
-    registrar.register_builtin_function(
+    context.register_builtin_function(
         "num-sqr",
         [number],
         Rc::new(|args, _context| match args[0].as_ref() {
@@ -280,7 +283,7 @@ pub fn register(registrar: &mut Registrar) -> PyretResult<()> {
         }),
     )?;
 
-    registrar.register_builtin_function(
+    context.register_builtin_function(
         "num-ceiling",
         [number],
         Rc::new(|args, _context| match args[0].as_ref() {
@@ -291,7 +294,7 @@ pub fn register(registrar: &mut Registrar) -> PyretResult<()> {
         }),
     )?;
 
-    registrar.register_builtin_function(
+    context.register_builtin_function(
         "num-floor",
         [number],
         Rc::new(|args, _context| match args[0].as_ref() {
@@ -302,7 +305,7 @@ pub fn register(registrar: &mut Registrar) -> PyretResult<()> {
         }),
     )?;
 
-    registrar.register_builtin_function(
+    context.register_builtin_function(
         "num-round",
         [number],
         Rc::new(|args, _context| match args[0].as_ref() {
@@ -313,7 +316,7 @@ pub fn register(registrar: &mut Registrar) -> PyretResult<()> {
         }),
     )?;
 
-    registrar.register_builtin_function(
+    context.register_builtin_function(
         "num-round-even",
         [number],
         Rc::new(|args, _context| match args[0].as_ref() {
@@ -324,7 +327,7 @@ pub fn register(registrar: &mut Registrar) -> PyretResult<()> {
         }),
     )?;
 
-    registrar.register_builtin_function(
+    context.register_builtin_function(
         "num-log",
         [number],
         Rc::new(|args, _context| match args[0].as_ref() {
@@ -335,7 +338,7 @@ pub fn register(registrar: &mut Registrar) -> PyretResult<()> {
         }),
     )?;
 
-    registrar.register_builtin_function(
+    context.register_builtin_function(
         "num-exp",
         [number],
         Rc::new(|args, _context| match args[0].as_ref() {
@@ -346,7 +349,7 @@ pub fn register(registrar: &mut Registrar) -> PyretResult<()> {
         }),
     )?;
 
-    registrar.register_builtin_function(
+    context.register_builtin_function(
         "num-expn",
         [number, number],
         Rc::new(
@@ -359,7 +362,7 @@ pub fn register(registrar: &mut Registrar) -> PyretResult<()> {
         ),
     )?;
 
-    registrar.register_builtin_function(
+    context.register_builtin_function(
         "num-to-roughnum",
         [number],
         Rc::new(|args, _context| match args[0].as_ref() {
@@ -370,7 +373,7 @@ pub fn register(registrar: &mut Registrar) -> PyretResult<()> {
         }),
     )?;
 
-    registrar.register_builtin_function(
+    context.register_builtin_function(
         "num-is-integer",
         [number],
         Rc::new(|args, _context| match args[0].as_ref() {
@@ -379,7 +382,7 @@ pub fn register(registrar: &mut Registrar) -> PyretResult<()> {
         }),
     )?;
 
-    registrar.register_builtin_function(
+    context.register_builtin_function(
         "num-is-rational",
         [number],
         Rc::new(|args, _context| match args[0].as_ref() {
@@ -388,7 +391,7 @@ pub fn register(registrar: &mut Registrar) -> PyretResult<()> {
         }),
     )?;
 
-    registrar.register_builtin_function(
+    context.register_builtin_function(
         "num-is-positive",
         [number],
         Rc::new(|args, _context| match args[0].as_ref() {
@@ -397,7 +400,7 @@ pub fn register(registrar: &mut Registrar) -> PyretResult<()> {
         }),
     )?;
 
-    registrar.register_builtin_function(
+    context.register_builtin_function(
         "num-is-negative",
         [number],
         Rc::new(|args, _context| match args[0].as_ref() {
@@ -406,7 +409,7 @@ pub fn register(registrar: &mut Registrar) -> PyretResult<()> {
         }),
     )?;
 
-    registrar.register_builtin_function(
+    context.register_builtin_function(
         "num-is-non-positive",
         [number],
         Rc::new(|args, _context| match args[0].as_ref() {
@@ -417,7 +420,7 @@ pub fn register(registrar: &mut Registrar) -> PyretResult<()> {
         }),
     )?;
 
-    registrar.register_builtin_function(
+    context.register_builtin_function(
         "num-is-non-negative",
         [number],
         Rc::new(|args, _context| match args[0].as_ref() {
@@ -428,7 +431,7 @@ pub fn register(registrar: &mut Registrar) -> PyretResult<()> {
         }),
     )?;
 
-    registrar.register_builtin_function(
+    context.register_builtin_function(
         "num-to-string",
         [number],
         Rc::new(|args, _context| match args[0].as_ref() {

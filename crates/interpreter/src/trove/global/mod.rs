@@ -4,61 +4,77 @@ pub mod number;
 pub mod ops;
 pub mod string;
 
-use std::{cell::RefMut, rc::Rc, sync::Arc};
+use std::{
+    cell::{RefCell, RefMut},
+    rc::Rc,
+    sync::Arc,
+};
 
 use pyret_error::{PyretErrorKind, PyretResult};
 
+use super::import_trove;
 use crate::{
-    context::Context,
     io::Output,
     trove::Trove,
-    value::{registrar::Registrar, PyretValue},
+    ty,
+    value::{
+        context::{Context, Register},
+        PyretValue,
+    },
+    Interpreter,
 };
 
-pub fn register(registrar: &mut Registrar) -> PyretResult<()> {
-    super::constants::register(registrar)?;
+ty!(Any, |_value, _context| true);
 
-    let any = &registrar.register_builtin_type("Any", Arc::new(|_value, _context| true))?;
+pub fn register(context: Rc<RefCell<Context>>) -> PyretResult<()> {
+    {
+        import_trove("constants", Rc::clone(&context))?;
 
-    registrar.register_builtin_function(
-        "display",
-        [any],
-        Rc::new(|args, context| {
-            let value = &args[0];
+        let any = &Any::predicate();
 
-            context.borrow().io.write(Output::Display(value));
+        context.register_builtin_function(
+            "display",
+            [any],
+            Rc::new(|args, context| {
+                let value = &args[0];
 
-            Ok(Rc::clone(value))
-        }),
-    )?;
+                context
+                    .borrow_mut()
+                    .io
+                    .write(Output::Display(Rc::clone(value)));
 
-    registrar.register_builtin_function(
-        "print",
-        [any],
-        Rc::new(|args, context| {
-            let value = &args[0];
+                Ok(Rc::clone(value))
+            }),
+        )?;
 
-            context.borrow().io.write(Output::Print(to_repr(value)));
+        context.register_builtin_function(
+            "print",
+            [any],
+            Rc::new(|args, context| {
+                let value = &args[0];
 
-            Ok(Rc::clone(value))
-        }),
-    )?;
+                context.borrow_mut().io.write(Output::Print(to_repr(value)));
 
-    registrar.register_builtin_function(
-        "raise",
-        [any],
-        Rc::new(|args, _context| {
-            Err(PyretErrorKind::RaiseRuntime(
-                args[0].to_string().into_boxed_str(),
-            ))
-        }),
-    )?;
+                Ok(Rc::clone(value))
+            }),
+        )?;
 
-    boolean::register(registrar)?;
-    nothing::register(registrar)?;
-    number::register(registrar)?;
-    ops::register(registrar)?;
-    string::register(registrar)?;
+        context.register_builtin_function(
+            "raise",
+            [any],
+            Rc::new(|args, _context| {
+                Err(PyretErrorKind::RaiseRuntime(
+                    args[0].to_string().into_boxed_str(),
+                ))
+            }),
+        )?;
+    }
+
+    boolean::register(Rc::clone(&context))?;
+    nothing::register(Rc::clone(&context))?;
+    number::register(Rc::clone(&context))?;
+    ops::register(Rc::clone(&context))?;
+    string::register(Rc::clone(&context))?;
 
     Ok(())
 }

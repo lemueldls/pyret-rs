@@ -1,16 +1,16 @@
-pub mod constants;
 pub mod global;
 
-use std::cell::RefMut;
+use std::{
+    cell::{RefCell, RefMut},
+    rc::Rc,
+};
 
 use pyret_error::PyretResult;
 
-use crate::{context::Context, ty, value::registrar::Registrar};
-
-ty!(Any, |_value, _context| true);
+use crate::{ty, value::context::Context, Interpreter};
 
 pub trait Trove {
-    fn register(context: &mut Registrar) -> PyretResult<()>;
+    fn register(context: Rc<RefCell<Context>>) -> PyretResult<()>;
 }
 
 pub struct Module {
@@ -18,10 +18,10 @@ pub struct Module {
     pub exports: Vec<String>,
 }
 
-pub fn import_trove(name: &str, registrar: &mut Registrar) -> PyretResult<()> {
+pub fn import_trove(name: &str, context: Rc<RefCell<Context>>) -> PyretResult<()> {
     match name {
-        "global" => global::register(registrar),
-        "constants" => constants::register(registrar),
+        "global" => global::register(context),
+        "constants" => trove!("constants", context),
         _ => todo!("Handle import of unknown trove."),
     }
 }

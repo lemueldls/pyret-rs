@@ -1,17 +1,24 @@
-use std::{cell::RefMut, sync::Arc};
+use std::{
+    cell::{RefCell, RefMut},
+    rc::Rc,
+    sync::Arc,
+};
 
 use pyret_error::PyretResult;
 use pyret_number::{BigInt, BigRational, PyretNumber};
 
-use crate::{context::Context, value::registrar::Registrar, PyretValue, Rc};
+use crate::{
+    value::context::{Context, Register},
+    PyretValue,
+};
 
-pub fn register(registrar: &mut Registrar) -> PyretResult<()> {
-    let string = &registrar.register_builtin_type(
+pub fn register(context: Rc<RefCell<Context>>) -> PyretResult<()> {
+    let string = &context.register_builtin_type(
         "String",
         Arc::new(|value, _context| matches!(value.as_ref(), PyretValue::String(..))),
     )?;
 
-    registrar.register_builtin_function(
+    context.register_builtin_function(
         "string-equal",
         [string, string],
         Rc::new(|args, _context| {
@@ -21,7 +28,7 @@ pub fn register(registrar: &mut Registrar) -> PyretResult<()> {
         }),
     )?;
 
-    registrar.register_builtin_function(
+    context.register_builtin_function(
         "string-contains",
         [string, string],
         Rc::new(|args, _context| {
@@ -35,7 +42,7 @@ pub fn register(registrar: &mut Registrar) -> PyretResult<()> {
         }),
     )?;
 
-    registrar.register_builtin_function(
+    context.register_builtin_function(
         "string-append",
         [string, string],
         Rc::new(|args, _context| {
@@ -51,7 +58,7 @@ pub fn register(registrar: &mut Registrar) -> PyretResult<()> {
         }),
     )?;
 
-    registrar.register_builtin_function(
+    context.register_builtin_function(
         "string-length",
         [string],
         Rc::new(|args, _context| {
