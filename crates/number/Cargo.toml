@@ -5,12 +5,12 @@ edition = "2021"
 keywords = ["pyret"]
 license = "Apache-2.0"
 name = "pyret-number"
-version = "0.0.0"
+version = "0.1.0-alpha.0"
 
 [features]
 default = []
 
-serde = ["num-bigint/serde", "num-rational/serde"]
+serde = ["dep:serde", "num-bigint/serde", "num-rational/serde"]
 
 [dependencies]
 num-bigint = { version = "0.4.3", default-features = false }
@@ -18,3 +18,5 @@ num-rational = { version = "0.4.1", default-features = false, features = [
   "num-bigint",
 ] }
 num-traits = { version = "0.2.15", default-features = false }
+
+serde = { version = "1.0.155", optional = true, features = ["derive"] }
