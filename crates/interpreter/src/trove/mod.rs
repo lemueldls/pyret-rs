@@ -1,13 +1,10 @@
 pub mod global;
 
-use std::{
-    cell::{RefCell, RefMut},
-    rc::Rc,
-};
+use std::{cell::RefCell, rc::Rc};
 
 use pyret_error::PyretResult;
 
-use crate::{ty, value::context::Context, Interpreter};
+use crate::value::context::Context;
 
 pub trait Trove {
     fn register(context: Rc<RefCell<Context>>) -> PyretResult<()>;

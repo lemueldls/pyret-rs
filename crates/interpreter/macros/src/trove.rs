@@ -1,9 +1,9 @@
-use std::{fs, path::PathBuf, rc::Rc};
+use std::{fs, path::PathBuf};
 
 use bincode::{config, serde};
 use proc_macro::TokenStream;
 use proc_macro2::Ident;
-use pyret_lexer::{ast, lex};
+use pyret_lexer::lex;
 use quote::quote;
 use syn::{
     parse,

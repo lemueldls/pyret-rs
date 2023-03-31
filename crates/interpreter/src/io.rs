@@ -1,7 +1,4 @@
-use std::{
-    rc::Rc,
-    sync::{Arc, LazyLock, Mutex},
-};
+use std::rc::Rc;
 
 use crate::{PyretValue, TestResult};
 

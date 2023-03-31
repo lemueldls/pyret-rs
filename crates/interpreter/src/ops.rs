@@ -1,9 +1,9 @@
-use std::{cell::RefMut, rc::Rc};
+use std::rc::Rc;
 
 use pyret_error::PyretResult;
 use pyret_lexer::ast::ExpressionStatement;
 
-use crate::{value::PyretValue, Context, Interpreter};
+use crate::{value::PyretValue, Interpreter};
 
 pub fn plus(left: &PyretValue, right: &PyretValue) -> PyretResult<Rc<PyretValue>> {
     match (left, right) {

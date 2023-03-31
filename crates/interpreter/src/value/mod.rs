@@ -1,15 +1,9 @@
 pub mod context;
 pub mod function;
 
-use std::{
-    cell::{Ref, RefCell},
-    fmt,
-    rc::Rc,
-    sync::Arc,
-};
+use std::{cell::RefCell, fmt, rc::Rc, sync::Arc};
 
 pub use function::PyretFunction;
-use pyret_error::PyretResult;
 use pyret_number::PyretNumber;
 
 use crate::Context;

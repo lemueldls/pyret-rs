@@ -1,7 +1,7 @@
 use super::{IdentifierExpression, StringLiteral};
 use crate::{
     ast::{
-        AsSymbol, ExpressionStatement, FromSymbol, LiteralExpression, Statement, SymbolStatement,
+        ExpressionStatement, LiteralExpression, Statement, SymbolStatement,
     },
     prelude::*,
 };

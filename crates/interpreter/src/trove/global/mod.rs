@@ -4,24 +4,18 @@ pub mod number;
 pub mod ops;
 pub mod string;
 
-use std::{
-    cell::{RefCell, RefMut},
-    rc::Rc,
-    sync::Arc,
-};
+use std::{cell::RefCell, rc::Rc};
 
 use pyret_error::{PyretErrorKind, PyretResult};
 
 use super::import_trove;
 use crate::{
     io::Output,
-    trove::Trove,
     ty,
     value::{
         context::{Context, Register},
         PyretValue,
     },
-    Interpreter,
 };
 
 ty!(Any, |_value, _context| true);

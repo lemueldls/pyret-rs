@@ -31,8 +31,6 @@ impl LetDeclaration {
     ) -> PyretResult<Self> {
         let start_position = state.next_position;
 
-        let kind = LetDeclarationKind::Let;
-
         let end = init.as_ref().map_or_else(
             || annotation.as_ref().map_or_else(|| ident.end(), Token::end),
             Token::end,

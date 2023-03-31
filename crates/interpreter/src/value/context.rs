@@ -1,4 +1,4 @@
-use std::{cell::RefCell, collections::HashMap, rc::Rc, sync::Arc};
+use std::{cell::RefCell, rc::Rc, sync::Arc};
 
 use pyret_error::PyretErrorKind;
 use pyret_lexer::{ast::IdentifierExpression, Token};
@@ -218,7 +218,7 @@ impl Register for Rc<RefCell<Context>> {
                         param_types,
                         return_type,
                         Rc::clone(&body),
-                        Rc::clone(self),
+                        Self::clone(self),
                     ),
                 )))),
                 scope_level,
@@ -245,7 +245,7 @@ impl Register for Rc<RefCell<Context>> {
 
     fn register_local_type(&self, name: Box<str>, predicate: TypePredicate, scope_level: usize) {
         if let Some(declaration) = self.borrow_mut().get_declaration(&name) {
-            if let Declaration::Type(predicate) = &declaration {
+            if let Declaration::Type(_predicate) = &declaration {
                 todo!(
                     "This declaration of a name conflicts with an earlier declaration of the same name:"
                 );
@@ -347,15 +347,9 @@ impl Register for Rc<RefCell<Context>> {
     }
 
     fn pop_scope(&self, scope_level: usize) {
-        self.borrow_mut().declarations.retain(|registered| {
-            if registered.scope_level > scope_level {
-                // self.borrow_mut().scope_level -= 1;
-
-                false
-            } else {
-                true
-            }
-        });
+        self.borrow_mut()
+            .declarations
+            .retain(|registered| registered.scope_level <= scope_level);
     }
 }
 

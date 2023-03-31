@@ -1,13 +1,8 @@
-use std::{iter, rc::Rc};
-
 use convert_case::{Case, Casing};
 use proc_macro::TokenStream;
-use proc_macro_error::{abort, proc_macro_error, ResultExt};
+use proc_macro_error::{abort, ResultExt};
 use quote::{quote, ToTokens};
-use syn::{
-    parse, parse::Parse, punctuated::Punctuated, Ident, ImplItem, ItemFn, ItemImpl, Pat, Path,
-    Token, Type, TypeReference,
-};
+use syn::{parse, ImplItem, ItemImpl, Pat, Type};
 
 pub fn expand(item: TokenStream) -> TokenStream {
     let item_impl: ItemImpl = parse(item).unwrap_or_abort();

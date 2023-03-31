@@ -1,4 +1,4 @@
-use std::{cell::RefCell, rc::Rc, sync::Arc};
+use std::{cell::RefCell, rc::Rc};
 
 use super::TypePredicate;
 use crate::{trove, Context, PyretResult, PyretValue, Register};

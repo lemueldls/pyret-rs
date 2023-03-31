@@ -3,14 +3,13 @@
 use std::{cell::RefCell, rc::Rc, sync::Arc};
 
 use js_sys::{Array, Function, Object, Reflect};
-use pyret_error::PyretResult;
 use pyret_file::PyretFile;
 use pyret_interpreter::{
     trove,
     value::{context::Context, PyretFunction, PyretValue},
     Interpreter, PyretGraph,
 };
-use pyret_number::{BigRational, PyretNumber};
+use pyret_number::PyretNumber;
 use wasm_bindgen::prelude::*;
 
 #[cfg(feature = "console_error_panic_hook")]
@@ -42,7 +41,7 @@ impl PyretRuntime {
     #[wasm_bindgen(constructor)]
     #[must_use]
     pub fn new() -> Self {
-        let mut interpreter = Interpreter::new(PyretGraphWrapper);
+        let interpreter = Interpreter::new(PyretGraphWrapper);
 
         Self { interpreter }
     }

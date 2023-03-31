@@ -1,10 +1,9 @@
 mod dir;
 
-use std::{fmt::format, fs, rc::Rc};
+use std::fs;
 
 use clap::Parser;
-use crossterm::style::{self, Color, Stylize};
-use pyret_error::miette;
+use crossterm::style::{Color, Stylize};
 use pyret_interpreter::{fs::FsGraph, io::Output, value::PyretValue, Interpreter, PyretGraph};
 use pyret_number::PyretNumber;
 

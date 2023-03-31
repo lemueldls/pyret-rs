@@ -1,13 +1,9 @@
-use std::{
-    cell::{RefCell, RefMut},
-    rc::Rc,
-};
+use std::{cell::RefCell, rc::Rc};
 
 use pyret_error::PyretResult;
-use pyret_lexer::ast::ExpressionStatement;
 
 use super::Any;
-use crate::{ops, value::PyretValue, Context, Interpreter, Register};
+use crate::{ops, Context, Register};
 
 pub fn register(context: Rc<RefCell<Context>>) -> PyretResult<()> {
     let any = &Any::predicate();

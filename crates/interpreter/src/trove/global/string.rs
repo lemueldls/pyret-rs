@@ -1,8 +1,4 @@
-use std::{
-    cell::{RefCell, RefMut},
-    rc::Rc,
-    sync::Arc,
-};
+use std::{cell::RefCell, rc::Rc, sync::Arc};
 
 use pyret_error::PyretResult;
 use pyret_number::{BigInt, BigRational, PyretNumber};

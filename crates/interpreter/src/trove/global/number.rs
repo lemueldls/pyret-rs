@@ -1,10 +1,4 @@
-use std::{
-    cell::{LazyCell, RefCell, RefMut},
-    cmp::Ordering,
-    ops::Deref,
-    rc::Rc,
-    sync::Arc,
-};
+use std::{cell::RefCell, cmp::Ordering, rc::Rc, sync::Arc};
 
 use pyret_error::PyretErrorKind;
 use pyret_number::{PyretNumber, Signed};
@@ -12,10 +6,7 @@ use pyret_number::{PyretNumber, Signed};
 use super::{boolean::Boolean, Any};
 use crate::{
     ty,
-    value::{
-        context::{Context, Register},
-        TypePredicate,
-    },
+    value::context::{Context, Register},
     PyretResult, PyretValue,
 };
 
@@ -100,9 +91,9 @@ pub fn register(context: Rc<RefCell<Context>>) -> PyretResult<()> {
         Rc::new(
             |args, _context| match (args[0].as_ref(), args[1].as_ref()) {
                 (PyretValue::Number(left), PyretValue::Number(right)) => {
-                    Ok(Rc::new(PyretValue::Boolean(left.is_equal(right).map_err(
-                        |err| PyretErrorKind::RaiseRuntime(Box::from(err)),
-                    )?)))
+                    Ok(Rc::new(PyretValue::Boolean(
+                        left.is_equal(right).map_err(PyretErrorKind::RaiseRuntime)?,
+                    )))
                 }
                 _ => unreachable!(),
             },

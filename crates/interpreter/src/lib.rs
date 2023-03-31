@@ -1,4 +1,4 @@
-#![feature(once_cell)]
+#![feature(lazy_cell)]
 
 #[cfg(feature = "fs")]
 pub mod fs;
@@ -12,15 +12,9 @@ pub mod macros;
 #[macro_use]
 extern crate pyret_interpreter_macros;
 
-use std::{
-    cell::RefCell,
-    collections::HashMap,
-    ops::RangeInclusive,
-    rc::Rc,
-    sync::{Arc, Mutex},
-};
+use std::{cell::RefCell, collections::HashMap, ops::RangeInclusive, rc::Rc};
 
-use io::{Io, Output};
+use io::Output;
 use pyret_error::{PyretError, PyretErrorKind, PyretResult};
 pub use pyret_file::graph::PyretGraph;
 use pyret_lexer::ast::LetDeclarationKind;
@@ -189,7 +183,7 @@ impl Interpreter {
             }
             ast::Statement::Import(import) => match import.value {
                 ast::Import::As {
-                    source,
+                    source: _,
                     name: ident,
                 } => {
                     if &*ident.name != "_" {
@@ -198,7 +192,10 @@ impl Interpreter {
 
                     Ok(None)
                 }
-                ast::Import::From { names, source } => todo!(),
+                ast::Import::From {
+                    names: _,
+                    source: _,
+                } => todo!(),
             },
             ast::Statement::Expression(expr) => {
                 let expression = self.interpret_expression(expr)?;
@@ -357,8 +354,8 @@ impl Interpreter {
         match &annotation.value {
             ast::AnnotationType::NameAnnotation {
                 name,
-                parameters,
-                predicate,
+                parameters: _,
+                predicate: _,
             } => match name {
                 ast::IdentifierAnnotation::Name(ident) => {
                     if let Some(r#type) = self.context.get_type(&ident.name)? {
