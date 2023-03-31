@@ -10,6 +10,7 @@ crate::export![
     import,
     number,
     parenthesis,
+    provide,
     string,
     r#type,
     variable

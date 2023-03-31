@@ -4,7 +4,8 @@ use crate::{
 };
 
 /// <https://www.pyret.org/docs/latest/Expressions.html#(part._s~3adot-expr)>
-#[derive(Leaf, Debug, PartialEq)]
+#[common]
+#[derive(Leaf)]
 #[regex(r"\.")]
 pub struct DotExpression {
     span: (usize, usize),

@@ -11,7 +11,8 @@ enum ImportKind {
     From,
 }
 
-#[derive(Debug, PartialEq)]
+#[common]
+
 pub enum Import {
     As {
         source: ImportSource,
@@ -23,7 +24,8 @@ pub enum Import {
     },
 }
 
-#[derive(Debug, PartialEq)]
+#[common]
+
 pub enum ImportSource {
     Special {
         name: IdentifierExpression,
@@ -38,19 +40,20 @@ pub enum ImportSource {
 }
 
 /// <https://www.pyret.org/docs/latest/Import_Statements.html>
-#[derive(Leaf, Debug, PartialEq)]
+#[common]
+#[derive(Leaf)]
 #[regex(r"import")]
 pub struct ImportStatement {
     span: (usize, usize),
-    value: Import,
+    pub value: Import,
 }
 
 impl TokenParser for ImportStatement {
     #[inline]
-    fn parse(input: Box<str>, state: &mut LexerState) -> PyretResult<Self> {
+    fn parse(_input: Box<str>, state: &mut LexerState) -> PyretResult<Self> {
         let start_position = state.current_position;
 
-        state.current_position += 6;
+        state.current_position = state.next_position + 6;
 
         let value = parse_import(Vec::new(), state)?;
 
@@ -62,6 +65,8 @@ impl TokenParser for ImportStatement {
 }
 
 fn parse_import(mut sources: Vec<ImportSource>, state: &mut LexerState) -> PyretResult<Import> {
+    // dbg!(&state.source[state.current_position..]);
+
     let stmt = state.try_lex::<Statement>()?;
 
     state.current_position = stmt.end();

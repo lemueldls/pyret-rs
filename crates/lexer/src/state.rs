@@ -1,5 +1,3 @@
-use std::any::TypeId;
-
 use crate::{ast, prelude::*};
 
 #[derive(Debug)]
@@ -45,14 +43,6 @@ impl<'input> LexerState<'input> {
             T::lex(self)
         } else {
             self.next_position = self.current_position;
-
-            if TypeId::of::<T>() != TypeId::of::<ast::CommentSymbol>() {
-                if let Some(comment) = self.lex::<ast::CommentSymbol>()? {
-                    self.current_position = comment.end();
-
-                    return self.lex();
-                }
-            }
 
             Ok(None)
         }

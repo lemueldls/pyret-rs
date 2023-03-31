@@ -4,7 +4,8 @@ use crate::{
 };
 
 /// <https://www.pyret.org/docs/latest/Expressions.html#(elem._(bnf-prod._(.Pyret._paren-expr)))>
-#[derive(Leaf, Debug, PartialEq)]
+#[common]
+#[derive(Leaf)]
 #[regex(r"\(")]
 pub struct ParenthesisExpression {
     span: (usize, usize),

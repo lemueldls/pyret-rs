@@ -1,5 +1,6 @@
 #![feature(if_let_guard)]
 
+mod comments;
 mod macros;
 mod state;
 mod token;
@@ -10,6 +11,7 @@ mod prelude;
 #[macro_use]
 extern crate pyret_lexer_macros;
 
+use comments::remove_comments;
 use prelude::*;
 pub use pyret_error as error;
 pub use token::Token;
@@ -19,17 +21,9 @@ pub use token::Token;
 /// Will return a vector of [`PyretErrorKind`]s if there are any lexing errors.
 #[inline]
 pub fn lex(source: &str) -> Result<Vec<ast::Statement>, Vec<PyretErrorKind>> {
-    // let mut comment_parser = CommentParser::new(self.input.clone());
+    let source = remove_comments(source).map_err(|error| vec![error])?;
 
-    // let start = std::time::Instant::now();
-
-    // let comments = comment_parser.parse();
-
-    // println!("[COMMENTS]: {}\u{3bc}s", start.elapsed().as_micros());
-
-    // match comments {
-    //     Ok(input) => {
-    let mut state = LexerState::new(source);
+    let mut state = LexerState::new(&source);
 
     let lex_state = lex_state(&mut state);
 
@@ -49,9 +43,6 @@ pub fn lex(source: &str) -> Result<Vec<ast::Statement>, Vec<PyretErrorKind>> {
             Err(errors)
         }
     }
-    //     }
-    //     Err(error) => Err(vec![error]),
-    // }
 }
 
 fn lex_state(state: &mut LexerState) -> PyretResult<()> {

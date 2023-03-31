@@ -1,18 +1,20 @@
+use super::TypeAnnotation;
 use crate::{
     ast::{
         DeclarationStatement, EqualSymbol, ExpressionStatement, IdentifierExpression,
-        ImportStatement, LetDeclaration, LetDeclarationKind, SymbolStatement,
+        ImportStatement, LetDeclaration, LetDeclarationKind, ProvideStatement, SymbolStatement,
     },
     prelude::*,
 };
 
-#[derive(Node, Debug, PartialEq)]
+#[common]
+#[derive(Node)]
 #[transform(transform)]
 pub enum Statement {
     Symbol(SymbolStatement),
     Declaration(DeclarationStatement),
     Import(ImportStatement),
-    // Provide(ProvideStatement),
+    Provide(ProvideStatement),
     Expression(ExpressionStatement),
 }
 
@@ -33,7 +35,9 @@ impl Statement {
             Self::Symbol(SymbolStatement::Rec(rec)) => {
                 state.current_position = rec.end();
 
-                if let Some(Self::Declaration(DeclarationStatement::Let(mut variable))) = state.lex()? {
+                if let Some(Self::Declaration(DeclarationStatement::Let(mut variable))) =
+                    state.lex()?
+                {
                     variable.kind = LetDeclarationKind::RecursiveLet;
 
                     Self::Declaration(DeclarationStatement::Let(variable)).transform(state)?
@@ -44,7 +48,9 @@ impl Statement {
             Self::Symbol(SymbolStatement::Var(var)) => {
                 state.current_position = var.end();
 
-                if let Some(Self::Declaration(DeclarationStatement::Let(mut variable))) = state.lex()? {
+                if let Some(Self::Declaration(DeclarationStatement::Let(mut variable))) =
+                    state.lex()?
+                {
                     variable.kind = LetDeclarationKind::Variable;
 
                     Self::Declaration(DeclarationStatement::Let(variable)).transform(state)?
@@ -52,14 +58,41 @@ impl Statement {
                     todo!("var without let")
                 }
             }
-            Self::Expression(ExpressionStatement::Identifier(ident)) if let Some(equal) = state.lex::<EqualSymbol>()? => {
-                state.current_position = equal.end();
+            Self::Expression(ExpressionStatement::Identifier(ident)) => {
+                if let Some(equal) = state.lex::<EqualSymbol>()? {
+                    state.current_position = equal.end();
 
-                Self::Declaration(DeclarationStatement::Let(LetDeclaration::new(
-                    LetDeclarationKind::Let,
-                    ident,
-                    state,
-                )?)).transform(state)?
+                    let init = state.try_lex::<ExpressionStatement>()?;
+
+                    Self::Declaration(DeclarationStatement::Let(LetDeclaration::new(
+                        LetDeclarationKind::Let,
+                        ident,
+                        None,
+                        Some(init),
+                        state,
+                    )?))
+                    .transform(state)?
+                } else if let Some(ann) = state.lex::<TypeAnnotation>()? {
+                    state.current_position = ann.end();
+
+                    let init = if let Some(equal) = state.lex::<EqualSymbol>()? {
+                        state.current_position = equal.end();
+
+                        Some(state.try_lex::<ExpressionStatement>()?)
+                    } else {
+                        None
+                    };
+
+                    Self::Declaration(DeclarationStatement::Let(LetDeclaration::new(
+                        LetDeclarationKind::Let,
+                        ident,
+                        Some(ann),
+                        init,
+                        state,
+                    )?))
+                } else {
+                    Self::Expression(ExpressionStatement::Identifier(ident))
+                }
             }
             _ => self,
         })

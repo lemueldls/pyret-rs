@@ -4,7 +4,8 @@ use crate::{
 };
 
 /// <https://www.pyret.org/docs/latest/Blocks.html>
-#[derive(Leaf, Debug, PartialEq)]
+#[common]
+#[derive(Leaf)]
 #[regex(r"block:")]
 pub struct BlockExpression {
     span: (usize, usize),

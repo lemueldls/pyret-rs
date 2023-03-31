@@ -3,7 +3,8 @@ use crate::{
     prelude::*,
 };
 
-#[derive(Node, Debug, PartialEq)]
+#[common]
+#[derive(Node)]
 pub enum LiteralExpression {
     String(StringLiteral),
     Number(NumericLiteral),

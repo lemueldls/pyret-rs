@@ -1,18 +1,21 @@
 [package]
 edition = "2021"
 name = "pyret-lexer"
-version = "0.0.0"
+version = "0.1.0-alpha.0"
 
 [features]
-default = ["comments", "fancy"]
+default = []
 
 comments = []
 fancy = ["pyret-error/fancy"]
+serde = ["dep:serde"]
 
 [dependencies]
-pyret-error = { path = "../error", verison = "0.0.0" }
-pyret-lexer-macros = { path = "./macros", verison = "0.0.0" }
-pyret-number = { path = "../number", verison = "0.0.0" }
+pyret-error = { path = "../error", version = "0.1.0-alpha.0" }
+pyret-lexer-macros = { path = "./macros", version = "0.1.0-alpha.0" }
+pyret-number = { path = "../number", version = "0.1.0-alpha.0" }
+
+serde = { version = "1.0.130", optional = true, features = ["derive"] }
 
 [dev-dependencies]
 criterion = "0.4.0"

@@ -3,7 +3,8 @@ use pyret_number::{str::PyretNumberParseError, PyretNumber};
 use crate::prelude::*;
 
 /// <https://www.pyret.org/docs/latest/s_literals.html#(part._f~3anumber_literals)>
-#[derive(Leaf, Debug, PartialEq)]
+#[common]
+#[derive(Leaf)]
 #[regex(r"~?[-+]?[[:digit:]]+(/[[:digit:]]+|(\.[[:digit:]]+)?([eE][-+]?[[:digit:]]+)?)?")]
 pub struct NumericLiteral {
     span: (usize, usize),

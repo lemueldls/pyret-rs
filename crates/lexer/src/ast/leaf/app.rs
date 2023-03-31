@@ -4,7 +4,8 @@ use crate::{
 };
 
 /// <https://www.pyret.org/docs/latest/Expressions.html#(part._s~3aapp-expr)>
-#[derive(Leaf, Debug, PartialEq)]
+#[common]
+#[derive(Leaf)]
 pub struct ApplicationExpression {
     span: (usize, usize),
     pub ident: IdentifierExpression,

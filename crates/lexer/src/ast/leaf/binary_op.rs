@@ -3,7 +3,8 @@ use crate::{
     prelude::*,
 };
 
-#[derive(Debug, PartialEq, Eq)]
+#[common]
+#[derive(Eq)]
 pub enum BinaryOperation {
     Plus,
     Minus,
@@ -50,7 +51,8 @@ impl BinaryOperation {
 }
 
 /// <https://www.pyret.org/docs/latest/Expressions.html#(part._s~3abinop-expr)>
-#[derive(Leaf, Debug, PartialEq)]
+#[common]
+#[derive(Leaf)]
 #[regex(r"[+\-*/]|<=?|>=?|==|<>|and|or|is(-roughly)?")]
 pub struct BinaryOperatorExpression {
     span: (usize, usize),
