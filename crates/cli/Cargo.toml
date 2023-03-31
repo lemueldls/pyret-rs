@@ -7,13 +7,17 @@ edition = "2021"
 keywords = ["pyret"]
 license = "Apache-2.0"
 name = "pyret"
-version = "0.0.0"
+version = "0.1.0-alpha.0"
 
 [dependencies]
-pyret-error = { path = "../error", verison = "0.0.0" }
-pyret-file = { path = "../file", verison = "0.0.0" }
-pyret-interpreter = { path = "../interpreter", verison = "0.0.0" }
+pyret-error = { path = "../error", version = "0.1.0-alpha.0" }
+pyret-file = { path = "../file", version = "0.1.0-alpha.0" }
+pyret-interpreter = { path = "../interpreter", version = "0.1.0-alpha.0", features = [
+  "fs",
+  "fancy",
+] }
+pyret-number = { path = "../number", version = "0.1.0-alpha.0" }
 
-ansi_term = "0.12.1"
 clap = { version = "4.1.8", features = ["derive"] }
+crossterm = "0.26.1"
 dirs-next = "2.0.0"
