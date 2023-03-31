@@ -152,13 +152,13 @@ pub enum PyretErrorKind {
     #[error("Pyret thinks your program is missing an opening block comment")]
     UnmatchedClosingComment {
         #[label]
-        position: SerializedToken,
+        position: SourceSpan,
     },
 
     #[error("Pyret thinks your program is missing a closing block comment")]
     UnmatchedOpeningComment {
         #[label]
-        position: SerializedToken,
+        position: SourceSpan,
     },
 
     #[error("Pyret didn't expect your program to end as soon as it did")]
