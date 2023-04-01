@@ -1,7 +1,7 @@
 use crate::prelude::*;
 
 #[common]
-#[derive(Node, Eq)]
+#[derive(Node)]
 pub enum SymbolStatement {
     #[regex(r"as")]
     As(AsSymbol),

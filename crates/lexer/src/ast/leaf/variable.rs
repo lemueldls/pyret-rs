@@ -4,7 +4,7 @@ use crate::{
 };
 
 #[common]
-#[derive(Eq)]
+#[derive(PartialEq, Eq)]
 pub enum LetDeclarationKind {
     Let,
     Variable,

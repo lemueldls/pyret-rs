@@ -13,7 +13,7 @@ pub struct NumericLiteral {
 
 impl TokenParser for NumericLiteral {
     #[inline]
-    fn parse(input: Box<str>, state: &mut LexerState) -> PyretResult<Self> {
+    fn parse_token(input: Box<str>, state: &mut LexerState) -> PyretResult<Self> {
         let value = match input.parse() {
             Ok(value) => value,
             Err(error) => match error {

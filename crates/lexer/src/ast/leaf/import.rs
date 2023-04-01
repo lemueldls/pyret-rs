@@ -41,7 +41,7 @@ pub struct ImportStatement {
 
 impl TokenParser for ImportStatement {
     #[inline]
-    fn parse(_input: Box<str>, state: &mut LexerState) -> PyretResult<Self> {
+    fn parse_token(_input: Box<str>, state: &mut LexerState) -> PyretResult<Self> {
         let start_position = state.current_position;
 
         state.current_position = state.next_position + 6;

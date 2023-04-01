@@ -12,17 +12,17 @@ use crate::{
 #[regex(r"\{")]
 pub struct RecordAnnotation {
     span: (usize, usize),
-    pub value: HashMap<IdentifierExpression, ExpressionStatement>,
+    pub value: Box<[(IdentifierExpression, ExpressionStatement)]>,
 }
 
 impl TokenParser for RecordAnnotation {
     #[inline]
-    fn parse(_input: Box<str>, state: &mut LexerState) -> PyretResult<Self> {
+    fn parse_token(_input: Box<str>, state: &mut LexerState) -> PyretResult<Self> {
         let start_position = state.current_position;
 
         state.current_position = state.next_position + 6;
 
-        let value = parse_import(Vec::new(), state)?;
+        let value = todo!();
 
         Ok(Self {
             span: (start_position, state.current_position),

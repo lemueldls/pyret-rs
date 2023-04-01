@@ -14,7 +14,7 @@ pub fn node_name(ident: &Ident) -> Box<str> {
 
 pub fn empty_lex() -> TokenStream {
     quote! {
-        fn lex(_state: &mut LexerState) -> PyretResult<::std::option::Option<Self>> {
+        fn lex_token(_state: &mut LexerState) -> PyretResult<::std::option::Option<Self>> {
             unimplemented!()
         }
     }

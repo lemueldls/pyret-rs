@@ -7,7 +7,6 @@ pub struct Function {
 }
 
 #[common]
-#[derive(Eq)]
 pub struct Parameter {
     pub name: Box<str>,
     pub type_ann: Option<Box<str>>,
@@ -25,7 +24,7 @@ pub struct FunctionDeclaration {
 
 impl TokenParser for FunctionDeclaration {
     #[inline]
-    fn parse(_input: Box<str>, state: &mut LexerState) -> PyretResult<Self> {
+    fn parse_token(_input: Box<str>, state: &mut LexerState) -> PyretResult<Self> {
         // let name = input.name("name").unwrap().as_str().to_owned();
 
         // self.eat(get_length(input.name("capture")));

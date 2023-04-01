@@ -43,7 +43,7 @@ pub struct TypeAnnotation {
 
 impl TokenParser for TypeAnnotation {
     #[inline]
-    fn parse(_input: Box<str>, state: &mut LexerState) -> PyretResult<Self> {
+    fn parse_token(_input: Box<str>, state: &mut LexerState) -> PyretResult<Self> {
         state.skip(2);
 
         let start_position = state.next_position;

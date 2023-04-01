@@ -45,7 +45,7 @@ pub fn expand(input: &ItemEnum) -> TokenStream {
                 let item = Arc::from_iter([
                     regex::LexerItem {
                         ident: Arc::from(leaf_ident.to_string()),
-                        variant: Arc::from("parse"),
+                        variant: Arc::from("parse_token"),
                         transforms: Arc::new([]),
                     },
                     regex::LexerItem {
@@ -87,14 +87,13 @@ pub fn expand(input: &ItemEnum) -> TokenStream {
 
                     leaf.extend(quote! {
                         #[common]
-                        #[derive(Eq)]
                         pub struct #leaf_ident {
                             span: (usize, usize)
                         }
 
                         impl TokenParser for #leaf_ident {
                             #[inline]
-                            fn parse(input: Box<str>, state: &mut LexerState) -> PyretResult<Self> {
+                            fn parse_token(input: Box<str>, state: &mut LexerState) -> PyretResult<Self> {
                                 Ok(Self { span: state.spanned(input.len()) })
                             }
                         }

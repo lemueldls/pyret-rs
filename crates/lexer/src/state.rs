@@ -40,7 +40,7 @@ impl<'input> LexerState<'input> {
         {
             self.next_position = self.current_position + trimmed_start;
 
-            T::lex(self)
+            T::lex_token(self)
         } else {
             self.next_position = self.current_position;
 

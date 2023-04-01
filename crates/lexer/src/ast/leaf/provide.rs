@@ -7,20 +7,17 @@ use crate::{
 };
 
 #[common]
-#[derive(Eq)]
 pub enum ProvideValues {
     Wildcard,
     Identifiers(HashMap<Box<str>, IdentifierExpression>),
 }
 
 #[common]
-#[derive(Eq)]
 pub enum ProvideTypes {
     Wildcard,
 }
 
 #[common]
-#[derive(Eq)]
 pub enum Provide {
     Values(ProvideValues),
     Types(ProvideTypes),
@@ -28,7 +25,7 @@ pub enum Provide {
 
 /// <https://www.pyret.org/docs/latest/Provide_Statements.html>
 #[common]
-#[derive(Leaf, Eq)]
+#[derive(Leaf)]
 #[regex(r"provide(-types)?")]
 #[regex(r"(?s)provide(-types)?\s+\*")]
 pub struct ProvideStatement {
@@ -38,7 +35,7 @@ pub struct ProvideStatement {
 
 impl TokenParser for ProvideStatement {
     #[inline]
-    fn parse(input: Box<str>, state: &mut LexerState) -> PyretResult<Self> {
+    fn parse_token(input: Box<str>, state: &mut LexerState) -> PyretResult<Self> {
         let start_position = state.current_position;
 
         let mut end_position = None;

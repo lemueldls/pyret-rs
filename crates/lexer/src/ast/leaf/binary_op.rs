@@ -4,7 +4,7 @@ use crate::{
 };
 
 #[common]
-#[derive(Eq)]
+#[derive(PartialEq, Eq)]
 pub enum BinaryOperation {
     Plus,
     Minus,
@@ -93,7 +93,7 @@ impl BinaryOperatorExpression {
 
 impl TokenParser for BinaryOperatorExpression {
     #[inline]
-    fn parse(input: Box<str>, state: &mut LexerState) -> PyretResult<Self> {
+    fn parse_token(input: Box<str>, state: &mut LexerState) -> PyretResult<Self> {
         let start_position = state.next_position;
 
         let no_whitespace = state.current_position == start_position;

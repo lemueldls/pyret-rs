@@ -5,7 +5,7 @@ use crate::{
     LexerState,
 };
 
-pub trait Token: Debug + PartialEq + Sized {
+pub trait Token: Debug + Sized {
     const NODE_NAME: &'static str;
 
     fn leaf_name(&self) -> &str;
@@ -33,7 +33,7 @@ pub trait TokenLexer: Token {
     /// Will return an [`Error`] if there was an error parsing the token.
     ///
     /// [`Error`]: crate::Error
-    fn lex(state: &mut LexerState) -> PyretResult<::std::option::Option<Self>>;
+    fn lex_token(state: &mut LexerState) -> PyretResult<::std::option::Option<Self>>;
 }
 
 pub trait TokenParser: Token {
@@ -42,5 +42,5 @@ pub trait TokenParser: Token {
     /// Will return an [`Error`] if there was an error parsing the token.
     ///
     /// [`Error`]: crate::Error
-    fn parse(input: Box<str>, state: &mut LexerState) -> PyretResult<Self>;
+    fn parse_token(input: Box<str>, state: &mut LexerState) -> PyretResult<Self>;
 }

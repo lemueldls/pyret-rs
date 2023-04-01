@@ -16,7 +16,7 @@ pub struct CheckDeclaration {
 
 impl TokenParser for CheckDeclaration {
     #[inline]
-    fn parse(_input: Box<str>, state: &mut LexerState) -> PyretResult<Self> {
+    fn parse_token(_input: Box<str>, state: &mut LexerState) -> PyretResult<Self> {
         let start_position = state.next_position;
 
         state.current_position = start_position + 5;

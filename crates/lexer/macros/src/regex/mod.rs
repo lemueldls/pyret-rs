@@ -111,7 +111,7 @@ pub fn expand(exprs: Vec<(Arc<[LexerItem]>, Hir)>, span: Span) -> TokenStream {
 
     quote! {
         #[inline]
-        fn lex(state: &mut LexerState) -> PyretResult<::std::option::Option<Self>> {
+        fn lex_token(state: &mut LexerState) -> PyretResult<::std::option::Option<Self>> {
             let input = &state.source[state.next_position..];
 
             let mut last_match = (#u_first, 0);

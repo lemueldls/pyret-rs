@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 /// <https://www.pyret.org/docs/latest/s_literals.html#(part._.String_.Literals)>
 #[common]
-#[derive(Leaf, Eq)]
+#[derive(Leaf)]
 // Single quotes
 #[regex(r"'(\\'|.)*?'")]
 // Double quotes
@@ -16,7 +16,7 @@ pub struct StringLiteral {
 
 impl TokenParser for StringLiteral {
     #[inline]
-    fn parse(input: Box<str>, state: &mut LexerState) -> PyretResult<Self> {
+    fn parse_token(input: Box<str>, state: &mut LexerState) -> PyretResult<Self> {
         let offset = match input.chars().next().expect("input is not empty") {
             '\'' | '"' => 1,
             '`' => 3,

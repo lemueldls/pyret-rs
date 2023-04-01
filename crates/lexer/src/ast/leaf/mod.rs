@@ -11,6 +11,7 @@ crate::export![
     number,
     parenthesis,
     provide,
+    record,
     string,
     r#type,
     variable

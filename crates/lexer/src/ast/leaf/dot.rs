@@ -15,7 +15,7 @@ pub struct DotExpression {
 
 impl TokenParser for DotExpression {
     #[inline]
-    fn parse(_input: Box<str>, state: &mut LexerState) -> PyretResult<Self> {
+    fn parse_token(_input: Box<str>, state: &mut LexerState) -> PyretResult<Self> {
         let start_position = state.current_position;
 
         // Skip "."

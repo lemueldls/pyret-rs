@@ -13,7 +13,7 @@ pub fn expand(input: &ItemStruct) -> TokenStream {
 
     let variant = Arc::from_iter([regex::LexerItem {
         ident: Arc::from(struct_ident.to_string()),
-        variant: Arc::from("parse"),
+        variant: Arc::from("parse_token"),
         transforms: Arc::new([]),
     }]);
 
