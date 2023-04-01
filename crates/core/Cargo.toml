@@ -1,0 +1,32 @@
+[package]
+description = "An implementation of the Pyret programming language."
+name = "pyret"
+readme = "README.md"
+
+authors.workspace = true
+categories.workspace = true
+edition.workspace = true
+keywords.workspace = true
+license.workspace = true
+repository.workspace = true
+version.workspace = true
+
+[features]
+default = []
+
+error = ["pyret-error"]
+file = ["pyret-file"]
+interpreter = ["pyret-interpreter"]
+lexer = ["pyret-lexer"]
+number = ["pyret-number"]
+
+fancy = ["pyret-interpreter/fancy", "pyret-error/fancy"]
+fs = ["pyret-interpreter/fs"]
+serde = ["pyret-lexer/serde", "pyret-number/serde"]
+
+[dependencies]
+pyret-error = { path = "../error", version = "0.1.0-alpha.0", optional = true }
+pyret-file = { path = "../file", version = "0.1.0-alpha.0", optional = true }
+pyret-interpreter = { path = "../interpreter", version = "0.1.0-alpha.0", optional = true }
+pyret-lexer = { path = "../lexer", version = "0.1.0-alpha.0", optional = true }
+pyret-number = { path = "../number", version = "0.1.0-alpha.0", optional = true }

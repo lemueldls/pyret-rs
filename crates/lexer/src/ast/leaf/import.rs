@@ -1,18 +1,10 @@
 use super::{IdentifierExpression, StringLiteral};
 use crate::{
-    ast::{
-        ExpressionStatement, LiteralExpression, Statement, SymbolStatement,
-    },
+    ast::{ExpressionStatement, LiteralExpression, Statement, SymbolStatement},
     prelude::*,
 };
 
-enum ImportKind {
-    As,
-    From,
-}
-
 #[common]
-
 pub enum Import {
     As {
         source: ImportSource,
@@ -25,7 +17,6 @@ pub enum Import {
 }
 
 #[common]
-
 pub enum ImportSource {
     Special {
         name: IdentifierExpression,

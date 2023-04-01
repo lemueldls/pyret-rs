@@ -1,14 +1,22 @@
 [package]
-edition = "2021"
+description = "Lexer for an implementation of the Pyret programming language."
 name = "pyret-lexer"
-version = "0.1.0-alpha.0"
+readme = "README.md"
+
+authors.workspace = true
+categories.workspace = true
+edition.workspace = true
+keywords.workspace = true
+license.workspace = true
+repository.workspace = true
+version.workspace = true
 
 [features]
 default = []
 
 comments = []
 fancy = ["pyret-error/fancy"]
-serde = ["dep:serde"]
+serde = ["dep:serde", "pyret-number/serde"]
 
 [dependencies]
 pyret-error = { path = "../error", version = "0.1.0-alpha.0" }

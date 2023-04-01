@@ -1,13 +1,19 @@
 [package]
-authors = ["Lemuel DLS"]
-categories = ["compilers", "parser-implementations", "wasm"]
-default-run = "pyret"
-description = "An implementation of the Pyret programming language."
-edition = "2021"
-keywords = ["pyret"]
-license = "Apache-2.0"
+description = "Command-line interface for an implementation of the Pyret programming language."
+name = "pyret-cli"
+readme = "README.md"
+
+authors.workspace = true
+categories.workspace = true
+edition.workspace = true
+keywords.workspace = true
+license.workspace = true
+repository.workspace = true
+version.workspace = true
+
+[[bin]]
 name = "pyret"
-version = "0.1.0-alpha.0"
+path = "src/main.rs"
 
 [dependencies]
 pyret-error = { path = "../error", version = "0.1.0-alpha.0" }

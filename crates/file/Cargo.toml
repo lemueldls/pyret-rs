@@ -1,7 +1,15 @@
 [package]
-edition = "2021"
+description = "File-handling for an implementation of the Pyret programming language."
 name = "pyret-file"
-version = "0.1.0-alpha.0"
+readme = "README.md"
+
+authors.workspace = true
+categories.workspace = true
+edition.workspace = true
+keywords.workspace = true
+license.workspace = true
+repository.workspace = true
+version.workspace = true
 
 [features]
 default = []

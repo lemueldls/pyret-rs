@@ -1,5 +1,13 @@
 [workspace]
 members = ["crates/*"]
+package.authors = ["Lemuel DLS"]
+package.categories = ["compilers", "parser-implementations", "wasm"]
+package.edition = "2021"
+package.keywords = ["pyret"]
+package.license = "Apache-2.0"
+package.repository = "https://github.com/lemueldls/pyret-rs"
+package.version = "0.1.0-alpha.0"
+resolver = "2"
 
 [profile.release]
 codegen-units = 1
