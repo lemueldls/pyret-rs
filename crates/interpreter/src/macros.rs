@@ -11,6 +11,14 @@ macro_rules! ty {
 
                 ::std::sync::Arc::clone(&*PREDICATE)
             }
+
+            pub fn register(
+                context: ::std::rc::Rc<::std::cell::RefCell<$crate::value::context::Context>>,
+            ) -> $crate::PyretResult<$crate::value::TypePredicate> {
+                use $crate::value::context::Register;
+
+                context.register_builtin_type(stringify!($ident), ::std::sync::Arc::new($predicate))
+            }
         }
 
         impl ::std::ops::Deref for $ident {

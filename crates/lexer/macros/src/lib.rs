@@ -1,3 +1,4 @@
+mod common;
 mod leaf;
 mod node;
 mod regex;
@@ -22,4 +23,9 @@ pub fn node(input: TokenStream) -> TokenStream {
 #[proc_macro_derive(Leaf, attributes(regex))]
 pub fn leaf(input: TokenStream) -> TokenStream {
     leaf::expand(&parse(input))
+}
+
+#[proc_macro_attribute]
+pub fn common(_attrs: TokenStream, input: TokenStream) -> TokenStream {
+    common::expand(input)
 }

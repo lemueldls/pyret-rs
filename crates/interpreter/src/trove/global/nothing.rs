@@ -1,23 +1,24 @@
-use std::{
-    cell::{RefCell, RefMut},
-    sync::Arc,
-};
+use std::{cell::RefCell, rc::Rc, sync::Arc};
 
 use pyret_error::PyretResult;
 
-use crate::{context::Context, value::registrar::Registrar, PyretValue, Rc};
+use super::Any;
+use crate::{
+    value::context::{Context, Register},
+    PyretValue,
+};
 
-pub fn register(registrar: &mut Registrar) -> PyretResult<()> {
-    let any = &registrar.get_type("Any")?.unwrap();
+pub fn register(context: Rc<RefCell<Context>>) -> PyretResult<()> {
+    let any = &Any::predicate();
 
-    registrar.register_builtin_type(
+    context.register_builtin_type(
         "Nothing",
         Arc::new(|value, _context| value.as_ref() == &PyretValue::Nothing),
     )?;
 
-    registrar.register_builtin_expr("nothing", PyretValue::Nothing);
+    context.register_builtin_expr("nothing", PyretValue::Nothing);
 
-    registrar.register_builtin_function(
+    context.register_builtin_function(
         "is-nothing",
         [any],
         Rc::new(|args, _context| {

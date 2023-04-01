@@ -2,14 +2,16 @@ use std::collections::HashMap;
 
 use crate::{ast::IdentifierExpression, prelude::*};
 
-#[derive(Debug, PartialEq)]
+#[common]
+
 pub enum IdentifierAnnotation {
     Name(IdentifierExpression),
     Dot(Vec<IdentifierExpression>),
 }
 
 /// <https://www.pyret.org/docs/latest/s_annotations.html>
-#[derive(Debug, PartialEq)]
+#[common]
+
 pub enum AnnotationType {
     /// <https://www.pyret.org/docs/latest/s_annotations.html#(part._s~3aname-ann)>
     NameAnnotation {
@@ -31,7 +33,8 @@ pub enum AnnotationType {
     RecordAnnotation(HashMap<Box<str>, AnnotationType>),
 }
 
-#[derive(Leaf, Debug, PartialEq)]
+#[common]
+#[derive(Leaf)]
 #[regex("::")]
 pub struct TypeAnnotation {
     span: (usize, usize),

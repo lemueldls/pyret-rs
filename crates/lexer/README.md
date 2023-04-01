@@ -1,5 +1,8 @@
 # pyret-lexer
 
+> Lexer for an implementation of the
+> [Pyret programming language](https://www.pyret.org).
+
 ## TODO
 
 - [ ] [Language Constructs](https://www.pyret.org/docs/latest/s_forms.html)

@@ -1,15 +1,23 @@
 [package]
-edition = "2021"
+description = "Error-handling for an implementation of the Pyret programming language."
 name = "pyret-error"
-version = "0.0.0"
+readme = "README.md"
+
+authors.workspace = true
+categories.workspace = true
+edition.workspace = true
+keywords.workspace = true
+license.workspace = true
+repository.workspace = true
+version.workspace = true
 
 [features]
-default = ["fancy"]
+default = []
 
 fancy = ["pyret-file/fancy"]
 
 [dependencies]
-pyret-file = { path = "../file", verison = "0.0.0" }
+pyret-file = { path = "../file", version = "0.1.0-alpha.0" }
 
 line-col = "0.2.1"
 thiserror = "1.0.39"

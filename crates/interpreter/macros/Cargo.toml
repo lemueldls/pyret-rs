@@ -1,12 +1,25 @@
 [package]
-edition = "2021"
+description = "Macros for the interpreter of an implementation of the Pyret programming language."
 name = "pyret-interpreter-macros"
-version = "0.0.0"
+readme = "README.md"
+
+authors.workspace = true
+categories.workspace = true
+edition.workspace = true
+keywords.workspace = true
+license.workspace = true
+repository.workspace = true
+version.workspace = true
 
 [lib]
 proc-macro = true
 
 [dependencies]
+pyret-lexer = { path = "../../lexer", version = "0.1.0-alpha.0", features = [
+  "serde",
+] }
+
+bincode = { version = "2.0.0-rc.2", features = ["serde"] }
 convert_case = "0.6.0"
 proc-macro-error = "1.0.4"
 proc-macro2 = "1.0.51"

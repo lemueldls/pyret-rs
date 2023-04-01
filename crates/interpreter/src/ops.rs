@@ -1,9 +1,9 @@
-use std::{cell::RefMut, rc::Rc};
+use std::rc::Rc;
 
 use pyret_error::PyretResult;
 use pyret_lexer::ast::ExpressionStatement;
 
-use crate::{value::PyretValue, Context, Interpreter};
+use crate::{value::PyretValue, Interpreter};
 
 pub fn plus(left: &PyretValue, right: &PyretValue) -> PyretResult<Rc<PyretValue>> {
     match (left, right) {
@@ -159,29 +159,4 @@ pub fn or(
         ))),
         _ => todo!("Evaluating `or` on non-boolean values"),
     }
-}
-
-pub fn is(left: &PyretValue, right: &PyretValue) -> PyretResult<Rc<PyretValue>> {
-    if left == right {
-        println!("  {left} is {right}");
-    } else {
-        eprintln!("  {left} is not {right}");
-    }
-
-    Ok(Rc::new(PyretValue::Nothing))
-}
-
-pub fn is_roughly(left: &PyretValue, right: &PyretValue) -> PyretResult<Rc<PyretValue>> {
-    match (left, right) {
-        (PyretValue::Number(left_number), PyretValue::Number(right_number)) => {
-            if left_number.is_roughly(right_number) {
-                println!("  {left} is roughly {right}");
-            } else {
-                eprintln!("  {left} is not roughly {right}");
-            }
-        }
-        _ => todo!("Evaluating `is roughly` on non-number values"),
-    }
-
-    Ok(Rc::new(PyretValue::Nothing))
 }

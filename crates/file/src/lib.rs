@@ -12,7 +12,7 @@ pub struct PyretFile {
 
 impl PyretFile {
     #[must_use]
-    pub fn new(name: Box<str>, source: Box<str>) -> Self {
+    pub const fn new(name: Box<str>, source: Box<str>) -> Self {
         Self { name, source }
     }
 }

@@ -1,16 +1,11 @@
 mod dir;
-mod graph;
 
 use std::fs;
 
-// use pyret_error::term::{
-//     termcolor::{ColorChoice, StandardStream},
-//     Config,
-// };
 use clap::Parser;
-use graph::FsGraph;
-// use pyret_error::miette;
-use pyret_interpreter::{io::Output, value::PyretValue, Interpreter, PyretGraph};
+use crossterm::style::{Color, Stylize};
+use pyret_interpreter::{fs::FsGraph, io::Output, value::PyretValue, Interpreter, PyretGraph};
+use pyret_number::PyretNumber;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -18,11 +13,7 @@ struct Args {
     program: String,
 }
 
-fn main()
-// -> miette::Result<()>
-{
-    // miette::set_hook(Box::new(|_| {}))?;
-
+fn main() {
     let args = Args::parse();
 
     let mut graph = FsGraph::new();
@@ -37,24 +28,9 @@ fn main()
         .context
         .borrow_mut()
         .io
-        .read(Box::new(|output| match output {
-            Output::Display(value) => {
-                if value != &PyretValue::Nothing {
-                    println!("{value}");
-                }
-            }
-            Output::Print(value) => println!(
-                "{}",
-                value
-                    .lines()
-                    .map(|line| format!(" {line}"))
-                    .collect::<Vec<_>>()
-                    .join("\n")
-            ),
-            Output::Test => {}
-        }));
+        .read(Box::new(handle_output));
 
-    if let Err(error) = interpreter.use_context("global") {
+    if let Err(error) = interpreter.import_trove("global") {
         eprintln!("{error:?}");
     }
 
@@ -62,7 +38,18 @@ fn main()
         Ok(values) => {
             for value in values.iter() {
                 if value.as_ref() != &PyretValue::Nothing {
-                    println!("{value}");
+                    let color = match &**value {
+                        PyretValue::Number(number) => match number {
+                            PyretNumber::Exact(_) => Color::Yellow,
+                            PyretNumber::Rough(_) => Color::DarkYellow,
+                        },
+                        PyretValue::String(_) => Color::Cyan,
+                        PyretValue::Boolean(_) => Color::DarkMagenta,
+                        PyretValue::Function(_) => Color::Reset,
+                        PyretValue::Nothing => unreachable!(),
+                    };
+
+                    println!("{}", value.as_ref().to_string().with(color));
                 }
             }
         }
@@ -76,6 +63,82 @@ fn main()
     // Ok(())
 
     // repl::start();
+}
+
+fn handle_output(output: Output) {
+    match output {
+        Output::Display(value) => {
+            if value.as_ref() != &PyretValue::Nothing {
+                println!("{value}");
+            }
+        }
+        Output::Print(value) => println!(
+            "{}",
+            value
+                .lines()
+                .map(|line| format!(" {line}"))
+                .collect::<Vec<_>>()
+                .join("\n")
+        ),
+        Output::Test { label, results } => {
+            let passed = results.iter().filter(|result| result.passed).count();
+            let total = results.len();
+
+            let all_passed = passed == total;
+
+            let color = if all_passed {
+                Color::Green
+            } else {
+                Color::Yellow
+            };
+
+            if let Some(label) = label {
+                println!("{}", label.underlined().with(color));
+            }
+
+            if all_passed {
+                if total == 1 {
+                    println!("{}", "The test in this block passed.".italic());
+                } else {
+                    println!(
+                        "{}",
+                        format!("All {total} tests in this block passed.").italic()
+                    );
+                }
+            } else if passed == 0 {
+                if total == 1 {
+                    eprintln!("{}", "The test in this block failed.".italic());
+                } else {
+                    eprintln!(
+                        "{}",
+                        format!("All {total} tests in this block failed.").italic()
+                    );
+                }
+            } else {
+                eprintln!("{passed} out of {total} test passed in this block");
+            }
+
+            for (i, result) in results.iter().enumerate() {
+                let i = i + 1;
+
+                if result.passed {
+                    println!(
+                        "  {} {}",
+                        format!("Test {i}:").underlined().green(),
+                        "Passed".green()
+                    );
+                } else {
+                    eprintln!(
+                        "  {} {}",
+                        format!("Test {i}:").underlined().yellow(),
+                        "Failed".yellow()
+                    );
+                }
+            }
+
+            println!();
+        }
+    }
 }
 
 // use std::fs;

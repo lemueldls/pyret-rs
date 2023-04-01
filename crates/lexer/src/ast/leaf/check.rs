@@ -5,7 +5,8 @@ use crate::{
 };
 
 /// <https://www.pyret.org/docs/latest/testing.html>
-#[derive(Leaf, Debug, PartialEq)]
+#[common]
+#[derive(Leaf)]
 #[regex(r"check")]
 pub struct CheckDeclaration {
     span: (usize, usize),

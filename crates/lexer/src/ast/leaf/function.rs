@@ -1,19 +1,21 @@
 use crate::{ast::Statement, prelude::*};
 
-#[derive(Debug, PartialEq)]
+#[common]
 pub struct Function {
     pub params: Vec<Parameter>,
     pub body: Vec<Statement>,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[common]
+#[derive(Eq)]
 pub struct Parameter {
     pub name: Box<str>,
     pub type_ann: Option<Box<str>>,
 }
 
 /// <https://www.pyret.org/docs/latest/s_declarations.html#(part._s~3afun-decl)>
-#[derive(Leaf, Debug, PartialEq)]
+#[common]
+#[derive(Leaf)]
 // #[regex(r".")]
 pub struct FunctionDeclaration {
     span: (usize, usize),
@@ -63,11 +65,11 @@ impl TokenParser for FunctionDeclaration {
         //         let last = i == body.len() - 1;
 
         //         match stmt {
-        //             Statement::Declaration(decl) if last => todo!("no decl at end:\n{:#?}", *decl),
-        //             Statement::Expression(expr) if !last => match expr {
-        //                 ast::Expr::Ident(..) | ast::Expr::Lit(..) => {
-        //                     todo!("no standalone expr:\n{expr:#?}")
-        //                 }
+        //             Statement::Declaration(decl) if last => todo!("no decl at
+        // end:\n{:#?}", *decl),             Statement::Expression(expr) if
+        // !last => match expr {                 ast::Expr::Ident(..) |
+        // ast::Expr::Lit(..) => {                     todo!("no standalone
+        // expr:\n{expr:#?}")                 }
         //                 _ => {}
         //             },
         //             _ => {}

@@ -86,7 +86,8 @@ pub fn expand(input: &ItemEnum) -> TokenStream {
                     );
 
                     leaf.extend(quote! {
-                        #[derive(Debug, PartialEq, Eq)]
+                        #[common]
+                        #[derive(Eq)]
                         pub struct #leaf_ident {
                             span: (usize, usize)
                         }

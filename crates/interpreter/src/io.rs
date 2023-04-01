@@ -1,18 +1,25 @@
-use crate::PyretValue;
+use std::rc::Rc;
 
-pub enum Output<'a> {
-    Display(&'a PyretValue),
+use crate::{PyretValue, TestResult};
+
+pub enum Output {
+    Display(Rc<PyretValue>),
     Print(Box<str>),
-    Test,
+    Test {
+        label: Option<Box<str>>,
+        results: Box<[TestResult]>,
+    },
 }
+
+type OutputFn = Box<dyn Fn(Output)>;
 
 #[derive(Default)]
 pub struct Io {
-    output: Option<Box<dyn Fn(Output)>>,
+    output: Option<OutputFn>,
 }
 
 impl Io {
-    pub fn read(&mut self, callback: Box<dyn Fn(Output)>) {
+    pub fn read(&mut self, callback: OutputFn) {
         if self.output.is_none() {
             self.output = Some(callback);
         } else {

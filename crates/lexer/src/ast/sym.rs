@@ -1,13 +1,12 @@
 use crate::prelude::*;
 
-#[derive(Node, Debug, PartialEq, Eq)]
+#[common]
+#[derive(Node, Eq)]
 pub enum SymbolStatement {
     #[regex(r"as")]
     As(AsSymbol),
     #[regex(r"from")]
     From(FromSymbol),
-    #[regex(r"#.*")]
-    Comment(CommentSymbol),
     #[regex(r"=")]
     Equal(EqualSymbol),
     #[regex(r"end")]

@@ -4,16 +4,17 @@ pub mod num;
 pub mod ops;
 pub mod str;
 
-use std::cmp::Ordering;
+use std::{cmp::Ordering, result};
 
-pub use num_bigint::BigInt;
+pub use num_bigint::{BigInt, Sign};
 pub use num_rational::BigRational;
 use num_traits::FromPrimitive;
 pub use num_traits::{One, Signed, ToPrimitive, Zero};
 
-type Result<T> = std::result::Result<T, Box<str>>;
+type Result<T> = result::Result<T, Box<str>>;
 
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum PyretNumber {
     Exact(BigRational),
     Rough(f64),

@@ -3,7 +3,8 @@ use crate::{
     prelude::*,
 };
 
-#[derive(Node, Debug, PartialEq)]
+#[common]
+#[derive(Node)]
 pub enum DeclarationStatement {
     Check(CheckDeclaration),
     // Function(FunctionDeclaration),

@@ -1,13 +1,13 @@
 use std::fs;
 
-use pyret_file::PyretFile;
-use pyret_interpreter::PyretGraph;
+use pyret_file::{graph::PyretGraph, PyretFile};
 
 pub struct FsGraph {
     pub files: Vec<PyretFile>,
 }
 
 impl FsGraph {
+    #[must_use]
     pub const fn new() -> Self {
         let files = Vec::new();
 
