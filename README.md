@@ -2,6 +2,13 @@
 
 > An implementation of the [Pyret programming language](https://www.pyret.org).
 
+## Running
+
+```console
+git submodule update --init --recursive
+cargo run test.arr
+```
+
 ## TODO
 
 - Priority
