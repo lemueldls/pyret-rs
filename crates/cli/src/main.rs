@@ -1,28 +1,33 @@
 mod dir;
+mod graph;
 
-use std::fs;
+use std::{fs};
 
 use clap::Parser;
 use crossterm::style::{Color, Stylize};
-use pyret_interpreter::{fs::FsGraph, io::Output, value::PyretValue, Interpreter, PyretGraph};
+use graph::FsGraph;
+use pyret_error::{
+    miette::{self, IntoDiagnostic},
+    PyretFile,
+};
+use pyret_interpreter::{
+    io::Output,
+    value::{PyretValueKind},
+    Interpreter, PyretGraph,
+};
 use pyret_number::PyretNumber;
+use rustyline::{error::ReadlineError, DefaultEditor};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {
-    program: String,
+    program: Option<String>,
 }
 
-fn main() {
+fn main() -> miette::Result<()> {
     let args = Args::parse();
 
-    let mut graph = FsGraph::new();
-
-    let name = fs::canonicalize(args.program).unwrap();
-
-    let file_id = graph.register(&name.to_string_lossy());
-
-    let mut interpreter = Interpreter::new(graph);
+    let mut interpreter = Interpreter::new(FsGraph::default());
 
     interpreter
         .context
@@ -34,41 +39,91 @@ fn main() {
         eprintln!("{error:?}");
     }
 
+    if let Some(program) = args.program {
+        let name = fs::canonicalize(program).unwrap();
+
+        let file_id = interpreter.graph.register(&name.to_string_lossy());
+
+        print_values(&mut interpreter, file_id);
+    } else {
+        let mut rl = DefaultEditor::new().into_diagnostic()?;
+
+        let history = &dir::join("repl.log");
+
+        let _ = rl.load_history(history);
+
+        println!(
+            "{} {}\nexit using ctrl+d",
+            env!("CARGO_PKG_NAME"),
+            env!("CARGO_PKG_VERSION")
+        );
+
+        let prompt = &"\u{203a}\u{203a}\u{203a} ".dim().to_string();
+
+        loop {
+            let readline = rl.readline(prompt);
+
+            match readline {
+                Ok(line) => {
+                    rl.add_history_entry(line.as_str()).into_diagnostic()?;
+
+                    let file_id = interpreter.graph.files.len();
+
+                    interpreter.graph.files.push(PyretFile::new(
+                        format!("repl://{file_id}").into_boxed_str(),
+                        line.into_boxed_str(),
+                    ));
+
+                    print_values(&mut interpreter, file_id);
+                }
+                Err(ReadlineError::Interrupted) => eprintln!("exit using ctrl+d"),
+                Err(ReadlineError::Eof) => break,
+                Err(error) => {
+                    eprintln!("Error: {error:?}");
+
+                    break;
+                }
+            }
+        }
+
+        rl.save_history(history).into_diagnostic()?;
+    }
+
+    Ok(())
+}
+
+fn print_values(interpreter: &mut Interpreter<FsGraph>, file_id: usize) {
     match interpreter.interpret(file_id) {
         Ok(values) => {
-            for value in values.iter() {
-                if value.as_ref() != &PyretValue::Nothing {
-                    let color = match &**value {
-                        PyretValue::Number(number) => match number {
+            for value in values {
+                if *value.kind != PyretValueKind::Nothing {
+                    let color = match &*value.kind {
+                        PyretValueKind::Number(number) => match number {
                             PyretNumber::Exact(_) => Color::Yellow,
                             PyretNumber::Rough(_) => Color::DarkYellow,
                         },
-                        PyretValue::String(_) => Color::Cyan,
-                        PyretValue::Boolean(_) => Color::DarkMagenta,
-                        PyretValue::Function(_) => Color::Reset,
-                        PyretValue::Nothing => unreachable!(),
+                        PyretValueKind::String(_) => Color::Cyan,
+                        PyretValueKind::Boolean(_) => Color::DarkMagenta,
+                        PyretValueKind::Function(_) => Color::Grey,
+                        PyretValueKind::Nothing => unreachable!(),
                     };
 
-                    println!("{}", value.as_ref().to_string().with(color));
+                    println!("{}", value.to_string().with(color));
                 }
             }
         }
         Err(errors) => {
             for error in errors {
-                eprintln!("{:?}", error.into_report(&*interpreter.graph));
+                eprintln!("{:?}", error.into_report(&interpreter.graph));
             }
         }
     }
-
-    // Ok(())
-
-    // repl::start();
 }
 
 fn handle_output(output: Output) {
     match output {
         Output::Display(value) => {
-            if value.as_ref() != &PyretValue::Nothing {
+            if *value.kind != PyretValueKind::Nothing {
                 println!("{value}");
             }
         }

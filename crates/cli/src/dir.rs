@@ -3,6 +3,8 @@ use std::{fs, path::PathBuf};
 pub fn join(path: &str) -> PathBuf {
     let dir = if let Some(cache_dir) = dirs_next::cache_dir() {
         cache_dir.join("pyret")
+    } else if let Some(config_dir) = dirs_next::config_dir() {
+        config_dir.join("pyret")
     } else if let Some(home_dir) = dirs_next::home_dir() {
         home_dir.join(".pyret")
     } else {

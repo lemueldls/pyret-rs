@@ -21,7 +21,6 @@ lexer = ["pyret-lexer"]
 number = ["pyret-number"]
 
 fancy = ["pyret-interpreter/fancy", "pyret-error/fancy"]
-fs = ["pyret-interpreter/fs"]
 serde = ["pyret-lexer/serde", "pyret-number/serde"]
 
 [dependencies]

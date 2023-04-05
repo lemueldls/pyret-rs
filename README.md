@@ -2,11 +2,10 @@
 
 > An implementation of the [Pyret programming language](https://www.pyret.org).
 
-## Running
+## Before running
 
 ```console
 git submodule update --init --recursive
-cargo run test.arr
 ```
 
 ## TODO

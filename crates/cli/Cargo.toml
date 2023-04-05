@@ -19,7 +19,6 @@ path = "src/main.rs"
 pyret-error = { path = "../error", version = "0.1.0-alpha.0" }
 pyret-file = { path = "../file", version = "0.1.0-alpha.0" }
 pyret-interpreter = { path = "../interpreter", version = "0.1.0-alpha.0", features = [
-  "fs",
   "fancy",
 ] }
 pyret-number = { path = "../number", version = "0.1.0-alpha.0" }
@@ -27,3 +26,4 @@ pyret-number = { path = "../number", version = "0.1.0-alpha.0" }
 clap = { version = "4.1.8", features = ["derive"] }
 crossterm = "0.26.1"
 dirs-next = "2.0.0"
+rustyline = { version = "11.0.0", features = ["derive"] }
