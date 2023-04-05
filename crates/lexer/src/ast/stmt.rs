@@ -1,8 +1,8 @@
 use super::TypeAnnotation;
 use crate::{
     ast::{
-        DeclarationStatement, EqualSymbol, ExpressionStatement,
-        ImportStatement, LetDeclaration, LetDeclarationKind, ProvideStatement, SymbolStatement,
+        DeclarationStatement, EqualSymbol, ExpressionStatement, ImportStatement, LetDeclaration,
+        LetDeclarationKind, ProvideStatement, SymbolStatement,
     },
     prelude::*,
 };

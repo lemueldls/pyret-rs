@@ -3,15 +3,20 @@ use std::{cell::RefCell, rc::Rc};
 use pyret_error::PyretResult;
 
 use super::Any;
-use crate::{trove::Trove, ty, value::context::Context, PyretValue};
+use crate::{
+    trove::Trove,
+    ty,
+    value::{context::Context, PyretValueKind},
+    PyretValue,
+};
 
 pub fn register(context: Rc<RefCell<Context>>) -> PyretResult<()> {
     ModBoolean::register(context)
 }
 
 ty!(Boolean, |value, _context| matches!(
-    value.as_ref(),
-    PyretValue::Boolean(..)
+    *value.kind,
+    PyretValueKind::Boolean(..)
 ));
 
 struct ModBoolean;
@@ -20,16 +25,20 @@ struct ModBoolean;
 impl ModBoolean {
     #[must_use]
     pub fn is_boolean(value: &Any) -> Boolean {
-        Boolean(Rc::new(PyretValue::Boolean(matches!(
-            value.as_ref(),
-            PyretValue::Boolean(..)
-        ))))
+        Boolean(
+            PyretValue::from(PyretValueKind::Boolean(matches!(
+                *value.kind,
+                PyretValueKind::Boolean(..)
+            ))),
+        )
     }
 
     #[must_use]
     pub fn not(value: &Boolean) -> Boolean {
-        match value.as_ref() {
-            PyretValue::Boolean(value) => Boolean(Rc::new(PyretValue::Boolean(!value))),
+        match *value.kind {
+            PyretValueKind::Boolean(value) => {
+                Boolean(PyretValue::from(PyretValueKind::Boolean(!value)))
+            }
             _ => unreachable!(),
         }
     }

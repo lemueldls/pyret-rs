@@ -1,7 +1,7 @@
 #[macro_export]
 macro_rules! ty {
     ($ident:ident, $predicate:expr) => {
-        pub struct $ident(pub ::std::rc::Rc<$crate::value::PyretValue>);
+        pub struct $ident(pub $crate::value::PyretValue);
 
         impl $ident {
             #[must_use]
@@ -22,7 +22,7 @@ macro_rules! ty {
         }
 
         impl ::std::ops::Deref for $ident {
-            type Target = ::std::rc::Rc<$crate::value::PyretValue>;
+            type Target = $crate::value::PyretValue;
 
             fn deref(&self) -> &Self::Target {
                 &self.0

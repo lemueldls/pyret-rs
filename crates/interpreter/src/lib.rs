@@ -1,7 +1,5 @@
 #![feature(lazy_cell)]
 
-#[cfg(feature = "fs")]
-pub mod fs;
 pub mod io;
 pub mod ops;
 pub mod trove;
@@ -15,37 +13,37 @@ extern crate pyret_interpreter_macros;
 use std::{cell::RefCell, collections::HashMap, ops::RangeInclusive, rc::Rc};
 
 use io::Output;
-use pyret_error::{PyretError, PyretErrorKind, PyretResult};
+use pyret_error::{PyretError, PyretResult};
 pub use pyret_file::graph::PyretGraph;
 use pyret_lexer::ast::LetDeclarationKind;
 pub use pyret_lexer::{ast, lex, Token};
 use value::{
     context::{Context, Declaration, Register, RegisteredDeclaration},
-    PyretValue,
+    PyretValue, PyretValueKind,
 };
 
 pub struct TestResult {
     pub passed: bool,
     pub left_span: RangeInclusive<usize>,
-    pub left_value: Rc<PyretValue>,
+    pub left_value: PyretValue,
     pub right_span: RangeInclusive<usize>,
-    pub right_value: Rc<PyretValue>,
+    pub right_value: PyretValue,
     pub test_span: RangeInclusive<usize>,
 }
 
-pub struct Interpreter {
-    pub graph: Box<dyn PyretGraph>,
+pub struct Interpreter<G: PyretGraph> {
+    pub graph: G,
     pub context: Rc<RefCell<Context>>,
     pub provide_values: ast::ProvideValues,
     pub provide_types: ast::ProvideTypes,
     scope_level: usize,
 }
 
-impl Interpreter {
+impl<G: PyretGraph> Interpreter<G> {
     #[must_use]
-    pub fn new(graph: impl PyretGraph + 'static) -> Self {
+    pub fn new(graph: G) -> Self {
         Self {
-            graph: Box::new(graph),
+            graph,
             context: Rc::new(RefCell::new(Context::default())),
             provide_values: ast::ProvideValues::Identifiers(HashMap::new()),
             provide_types: ast::ProvideTypes::Wildcard,
@@ -80,7 +78,7 @@ impl Interpreter {
             .collect()
     }
 
-    pub fn interpret(&mut self, file_id: usize) -> Result<Box<[Rc<PyretValue>]>, Vec<PyretError>> {
+    pub fn interpret(&mut self, file_id: usize) -> Result<Vec<PyretValue>, Vec<PyretError>> {
         let stmts = match lex(&self.graph.get(file_id).source) {
             Ok(tokens) => tokens,
             Err(errors) => {
@@ -101,7 +99,7 @@ impl Interpreter {
         &mut self,
         block: Vec<ast::Statement>,
         interpret: fn(&mut Self, ast::Statement) -> PyretResult<Option<T>>,
-    ) -> PyretResult<Box<[T]>> {
+    ) -> PyretResult<Vec<T>> {
         self.scope_level += 1;
 
         let values = block
@@ -119,10 +117,7 @@ impl Interpreter {
         values
     }
 
-    pub fn interpret_block(
-        &mut self,
-        block: Vec<ast::Statement>,
-    ) -> PyretResult<Box<[Rc<PyretValue>]>> {
+    pub fn interpret_block(&mut self, block: Vec<ast::Statement>) -> PyretResult<Vec<PyretValue>> {
         self.interpret_block_with(block, Self::interpret_statement)
     }
 
@@ -139,18 +134,19 @@ impl Interpreter {
                 let left_span = binary_op.left.start()..=binary_op.left.end();
                 let right_span = binary_op.right.start()..=binary_op.right.end();
 
-                let rc_left = self.interpret_expression(*binary_op.left)?;
-                let left = rc_left.as_ref();
+                let left = self.interpret_expression(*binary_op.left)?;
+                let left_kind = &*left.kind;
 
-                let rc_right = self.interpret_expression(*binary_op.right)?;
-                let right = rc_right.as_ref();
+                let right = self.interpret_expression(*binary_op.right)?;
+                let right_kind = &*right.kind;
 
                 let result = match binary_op.operator {
-                    ast::BinaryOperation::Is => left == right,
-                    ast::BinaryOperation::IsRoughly => match (left, right) {
-                        (PyretValue::Number(left_number), PyretValue::Number(right_number)) => {
-                            left_number.is_roughly(right_number)
-                        }
+                    ast::BinaryOperation::Is => left_kind == right_kind,
+                    ast::BinaryOperation::IsRoughly => match (left_kind, right_kind) {
+                        (
+                            PyretValueKind::Number(left_number),
+                            PyretValueKind::Number(right_number),
+                        ) => left_number.is_roughly(right_number),
                         _ => todo!("Evaluating `is roughly` on non-number values"),
                     },
                     _ => unreachable!(),
@@ -158,9 +154,9 @@ impl Interpreter {
 
                 Some(TestResult {
                     passed: result,
-                    left_value: rc_left,
+                    left_value: left,
                     left_span,
-                    right_value: rc_right,
+                    right_value: right,
                     right_span,
                     test_span: span,
                 })
@@ -173,7 +169,7 @@ impl Interpreter {
         })
     }
 
-    fn interpret_statement(&mut self, stmt: ast::Statement) -> PyretResult<Option<Rc<PyretValue>>> {
+    fn interpret_statement(&mut self, stmt: ast::Statement) -> PyretResult<Option<PyretValue>> {
         match stmt {
             ast::Statement::Symbol(symbol) => todo!("Unexpected symbol: {symbol:?}"),
             ast::Statement::Declaration(decl) => {
@@ -223,10 +219,7 @@ impl Interpreter {
         }
     }
 
-    fn interpret_expression(
-        &mut self,
-        expr: ast::ExpressionStatement,
-    ) -> PyretResult<Rc<PyretValue>> {
+    fn interpret_expression(&mut self, expr: ast::ExpressionStatement) -> PyretResult<PyretValue> {
         match expr {
             ast::ExpressionStatement::Application(app) => {
                 let args = app
@@ -236,30 +229,36 @@ impl Interpreter {
                     .collect::<PyretResult<Vec<_>>>()?;
 
                 self.context
-                    .call_function(app.ident, &args, self.scope_level)
+                    .call_function(app.ident, args, self.scope_level)
             }
             ast::ExpressionStatement::Block(block) => {
-                let values = self.interpret_block(block.body)?;
+                let values = self.interpret_block(block.body)?.into_iter();
 
-                Ok(Rc::clone(values.last().unwrap()))
+                Ok(values.last().unwrap())
             }
             ast::ExpressionStatement::Literal(literal) => match literal {
-                ast::LiteralExpression::Number(number) => {
-                    Ok(Rc::new(PyretValue::Number(number.value)))
-                }
-                ast::LiteralExpression::String(string) => {
-                    Ok(Rc::new(PyretValue::String(string.value)))
-                }
-                ast::LiteralExpression::Boolean(boolean) => {
-                    Ok(Rc::new(PyretValue::Boolean(boolean.value)))
-                }
+                ast::LiteralExpression::Number(number) => Ok(PyretValue::new(
+                    number.span(),
+                    Rc::new(PyretValueKind::Number(number.value)),
+                )),
+                ast::LiteralExpression::String(string) => Ok(PyretValue::new(
+                    string.span(),
+                    Rc::new(PyretValueKind::String(string.value)),
+                )),
+                ast::LiteralExpression::Boolean(boolean) => Ok(PyretValue::new(
+                    boolean.span(),
+                    Rc::new(PyretValueKind::Boolean(boolean.value)),
+                )),
             },
             ast::ExpressionStatement::Identifier(ident) => {
                 let name = &*ident.name;
 
                 let declaration = self.context.get_value(name)?;
 
-                Ok(Rc::clone(&declaration.value))
+                Ok(PyretValue::new(
+                    ident.span(),
+                    Rc::clone(&declaration.value.kind),
+                ))
             }
             ast::ExpressionStatement::BinaryOperator(binary_op) => {
                 self.interpret_binary_operator(binary_op)
@@ -272,16 +271,13 @@ impl Interpreter {
     fn interpret_binary_operator(
         &mut self,
         binary_op: ast::BinaryOperatorExpression,
-    ) -> Result<Rc<PyretValue>, PyretErrorKind> {
+    ) -> PyretResult<PyretValue> {
         match binary_op.operator {
             ast::BinaryOperation::And => ops::and(*binary_op.left, *binary_op.right, self),
             ast::BinaryOperation::Or => ops::or(*binary_op.left, *binary_op.right, self),
             _ => {
                 let left = self.interpret_expression(*binary_op.left)?;
-                let left = left.as_ref();
-
                 let right = self.interpret_expression(*binary_op.right)?;
-                let right = right.as_ref();
 
                 match binary_op.operator {
                     ast::BinaryOperation::Plus => ops::plus(left, right),
@@ -312,8 +308,10 @@ impl Interpreter {
             ast::DeclarationStatement::Check(check) => {
                 let label = check.label;
 
-                let results =
-                    self.interpret_block_with(check.body, Self::interpret_test_statement)?;
+                let results = self
+                    .interpret_block_with(check.body, Self::interpret_test_statement)?
+                    .into_iter()
+                    .collect::<Box<[TestResult]>>();
 
                 self.context
                     .borrow_mut()
@@ -331,11 +329,15 @@ impl Interpreter {
 
                 let value = var
                     .init
-                    .map(|init| self.interpret_expression(init))
+                    .map(|init| {
+                        let expr = self.interpret_expression(init)?;
+
+                        Ok(PyretValue::new(var.ident.span(), Rc::clone(&expr.kind)))
+                    })
                     .transpose()?;
 
                 if let (Some(annotation), Some(value)) = (var.annotation, &value) {
-                    self.type_check(&annotation, value)?;
+                    self.type_check(&annotation, value.clone())?;
                 }
 
                 self.context
@@ -346,11 +348,7 @@ impl Interpreter {
         Ok(())
     }
 
-    fn type_check(
-        &self,
-        annotation: &ast::TypeAnnotation,
-        value: &Rc<PyretValue>,
-    ) -> PyretResult<()> {
+    fn type_check(&self, annotation: &ast::TypeAnnotation, value: PyretValue) -> PyretResult<()> {
         match &annotation.value {
             ast::AnnotationType::NameAnnotation {
                 name,
@@ -359,7 +357,7 @@ impl Interpreter {
             } => match name {
                 ast::IdentifierAnnotation::Name(ident) => {
                     if let Some(r#type) = self.context.get_type(&ident.name)? {
-                        if !r#type(Rc::clone(value), Rc::clone(&self.context)) {
+                        if !r#type(value, Rc::clone(&self.context)) {
                             todo!("Type error: {annotation:?}")
                         }
                     }

@@ -20,18 +20,17 @@ pub fn expand(item: TokenStream) -> TokenStream {
                 .sig
                 .inputs
                 .iter()
-                .enumerate()
-                .map(|(i, input)| match input {
+                .map(|input| match input {
                     syn::FnArg::Receiver(_) => abort!(input, "Unsupported type"),
-                    syn::FnArg::Typed(typed) => {
-                        let ident = match &*typed.pat {
+                    syn::FnArg::Typed(pat_typed) => {
+                        let ident = match &*pat_typed.pat {
                             Pat::Ident(pat_ident) => &pat_ident.ident,
-                            _ => abort!(typed.pat, "Unsupported type"),
+                            _ => abort!(pat_typed.pat, "Unsupported type"),
                         };
-                        let (ty, is_ref) = match &*typed.ty {
+                        let (ty, is_ref) = match &*pat_typed.ty {
                             ty @ Type::Path(..) => (ty, false),
                             Type::Reference(reference) => (&*reference.elem, true),
-                            _ => abort!(typed.ty, "Unsupported type"),
+                            _ => abort!(pat_typed.ty, "Unsupported type"),
                         };
 
                         if ident == "context" {
@@ -41,7 +40,7 @@ pub fn expand(item: TokenStream) -> TokenStream {
 
                             let ampersand = is_ref.then(|| quote!(&));
 
-                            quote!(#ampersand #ty(Rc::clone(&args[#i])))
+                            quote!(#ampersand #ty(args.next().unwrap()))
                         }
                     }
                 })

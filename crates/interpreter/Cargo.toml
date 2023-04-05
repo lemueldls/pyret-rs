@@ -15,13 +15,14 @@ version.workspace = true
 default = []
 
 fancy = ["pyret-lexer/fancy"]
-fs = []
 
 [dependencies]
 pyret-error = { path = "../error", version = "0.1.0-alpha.0" }
 pyret-file = { path = "../file", version = "0.1.0-alpha.0" }
 pyret-interpreter-macros = { path = "./macros", version = "0.1.0-alpha.0" }
-pyret-lexer = { path = "../lexer", version = "0.1.0-alpha.0" }
+pyret-lexer = { path = "../lexer", version = "0.1.0-alpha.0", features = [
+  "serde",
+] }
 pyret-number = { path = "../number", version = "0.1.0-alpha.0" }
 
 bincode = { version = "2.0.0-rc.2", features = ["serde"] }

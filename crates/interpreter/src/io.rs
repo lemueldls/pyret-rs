@@ -1,9 +1,9 @@
-use std::rc::Rc;
+
 
 use crate::{PyretValue, TestResult};
 
 pub enum Output {
-    Display(Rc<PyretValue>),
+    Display(PyretValue),
     Print(Box<str>),
     Test {
         label: Option<Box<str>>,

@@ -31,7 +31,7 @@ impl ExpressionStatement {
                 if {
                     let end = ident.end();
 
-                    &state.source[end..=end] == "("
+                    end < state.source.len() && &state.source[end..=end] == "("
                 } =>
             {
                 let application = ApplicationExpression::new(ident, state)?;

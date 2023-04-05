@@ -21,8 +21,9 @@ impl TokenParser for NumericLiteral {
                     let divider = input.find('/').unwrap();
 
                     state.throw_late(PyretErrorKind::DivideByZero {
-                        denominator: (state.next_position + divider + 1, input.len() - divider - 1)
-                            .into(),
+                        denominator: Some(
+                            (state.next_position + divider + 1, input.len() - divider - 1).into(),
+                        ),
                     });
 
                     PyretNumber::Rough(0.0)

@@ -6,7 +6,7 @@ use js_sys::{Array, Function, Object, Reflect};
 use pyret_file::PyretFile;
 use pyret_interpreter::{
     trove,
-    value::{context::Context, PyretFunction, PyretValue},
+    value::{context::Context, PyretFunction, PyretValue, PyretValueKind},
     Interpreter, PyretGraph,
 };
 use pyret_number::PyretNumber;
@@ -21,7 +21,7 @@ pub fn set_panic_hook() {
 
 #[wasm_bindgen]
 pub struct PyretRuntime {
-    interpreter: Interpreter,
+    interpreter: Interpreter<PyretGraphWrapper>,
 }
 
 struct PyretGraphWrapper;
@@ -59,37 +59,50 @@ impl PyretRuntime {
 }
 
 #[must_use]
-fn pyret_to_js(value: &Rc<PyretValue>) -> JsValue {
-    let (tag, value) = match &**value {
-        PyretValue::Number(number) => match number {
+fn pyret_to_js(value: &PyretValue) -> JsValue {
+    let span = {
+        if let Some(span) = &value.span {
+            #[allow(clippy::cast_precision_loss)]
+            JsValue::from(Array::from_iter(&[
+                JsValue::from_f64(span.start as f64),
+                JsValue::from_f64(span.end as f64),
+            ]))
+        } else {
+            JsValue::NULL
+        }
+    };
+
+    let (tag, value) = match &*value.kind {
+        PyretValueKind::Number(number) => match number {
             PyretNumber::Exact(exact) => {
                 ("Exactnum", serde_wasm_bindgen::to_value(&exact).unwrap())
             }
             PyretNumber::Rough(rough) => ("Roughnum", JsValue::from_f64(*rough)),
         },
-        PyretValue::String(string) => ("String", JsValue::from_str(string)),
-        PyretValue::Boolean(boolean) => ("Boolean", JsValue::from_bool(*boolean)),
-        PyretValue::Function(function) => {
+        PyretValueKind::String(string) => ("String", JsValue::from_str(string)),
+        PyretValueKind::Boolean(boolean) => ("Boolean", JsValue::from_bool(*boolean)),
+        PyretValueKind::Function(function) => {
             let function = function.clone();
 
             let closure = Closure::wrap(Box::new(move |args: Vec<JsValue>| {
                 let args = args
                     .into_iter()
-                    .map(|value| Rc::new(js_to_pyret(value)))
-                    .collect::<Box<[Rc<PyretValue>]>>();
+                    .map(js_to_pyret)
+                    .collect::<Vec<PyretValue>>();
 
-                let value = function.call(&args, 0).unwrap();
+                let value = function.call(args, 0).unwrap();
 
                 pyret_to_js(&value)
             }) as Box<dyn FnMut(Vec<JsValue>) -> JsValue>);
 
             ("Function", closure.into_js_value())
         }
-        PyretValue::Nothing => ("Nothing", JsValue::UNDEFINED),
+        PyretValueKind::Nothing => ("Nothing", JsValue::NULL),
     };
 
     let object = Object::new();
 
+    Reflect::set(&object, &"span".into(), &span).unwrap();
     Reflect::set(&object, &"tag".into(), &tag.into()).unwrap();
     Reflect::set(&object, &"value".into(), &value).unwrap();
 
@@ -99,6 +112,20 @@ fn pyret_to_js(value: &Rc<PyretValue>) -> JsValue {
 fn js_to_pyret(value: JsValue) -> PyretValue {
     let object = value.dyn_into::<Object>().unwrap();
 
+    #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+    let span = {
+        let value = Reflect::get(&object, &"span".into()).unwrap();
+
+        if let Ok(array) = value.dyn_into::<Array>() {
+            let start = array.get(0).as_f64().unwrap() as usize;
+            let end = array.get(1).as_f64().unwrap() as usize;
+
+            Some(start..end)
+        } else {
+            None
+        }
+    };
+
     let tag = Reflect::get(&object, &"tag".into())
         .unwrap()
         .as_string()
@@ -106,13 +133,13 @@ fn js_to_pyret(value: JsValue) -> PyretValue {
 
     let value = Reflect::get(&object, &"value".into()).unwrap();
 
-    match tag.as_str() {
-        "Exactnum" => PyretValue::Number(PyretNumber::Exact(
+    let kind = match tag.as_str() {
+        "Exactnum" => PyretValueKind::Number(PyretNumber::Exact(
             serde_wasm_bindgen::from_value(value).unwrap(),
         )),
-        "Roughnum" => PyretValue::Number(PyretNumber::Rough(value.as_f64().unwrap())),
-        "String" => PyretValue::String(value.as_string().unwrap().into_boxed_str()),
-        "Boolean" => PyretValue::Boolean(value.as_bool().unwrap()),
+        "Roughnum" => PyretValueKind::Number(PyretNumber::Rough(value.as_f64().unwrap())),
+        "String" => PyretValueKind::String(value.as_string().unwrap().into_boxed_str()),
+        "Boolean" => PyretValueKind::Boolean(value.as_bool().unwrap()),
         "Function" => {
             let function = value.dyn_into::<Function>().unwrap();
 
@@ -130,17 +157,19 @@ fn js_to_pyret(value: JsValue) -> PyretValue {
                 .collect::<Vec<_>>()
                 .into_boxed_slice();
 
-            let body = Rc::new(move |args: &[Rc<PyretValue>], _context| {
-                let args = args.iter().map(pyret_to_js).collect::<Array>();
+            let body = Rc::new(
+                move |args: &mut dyn Iterator<Item = PyretValue>, _context| {
+                    let args = args.map(|value| pyret_to_js(&value)).collect::<Array>();
 
-                let value = function.apply(&JsValue::UNDEFINED, &args).unwrap();
+                    let value = function.apply(&JsValue::NULL, &args).unwrap();
 
-                Ok(Rc::new(js_to_pyret(value)))
-            });
+                    Ok(js_to_pyret(value))
+                },
+            );
 
             let context = Rc::new(RefCell::new(Context::default()));
 
-            PyretValue::Function(PyretFunction::new(
+            PyretValueKind::Function(PyretFunction::new(
                 name,
                 generics,
                 param_types,
@@ -150,5 +179,10 @@ fn js_to_pyret(value: JsValue) -> PyretValue {
             ))
         }
         _ => todo!(),
+    };
+
+    PyretValue {
+        span,
+        kind: Rc::new(kind),
     }
 }

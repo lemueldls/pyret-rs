@@ -3,8 +3,9 @@ use std::{cell::RefCell, rc::Rc};
 use super::TypePredicate;
 use crate::{trove, Context, PyretResult, PyretValue, Register};
 
-pub type FunctionSignature =
-    Rc<dyn Fn(&[Rc<PyretValue>], Rc<RefCell<Context>>) -> PyretResult<Rc<PyretValue>>>;
+pub type FunctionSignature = Rc<
+    dyn Fn(&mut dyn Iterator<Item = PyretValue>, Rc<RefCell<Context>>) -> PyretResult<PyretValue>,
+>;
 
 #[derive(Clone)]
 pub struct PyretFunction {
@@ -36,7 +37,7 @@ impl PyretFunction {
         }
     }
 
-    pub fn call(&self, args: &[Rc<PyretValue>], scope_level: usize) -> PyretResult<Rc<PyretValue>> {
+    pub fn call(&self, args: Vec<PyretValue>, scope_level: usize) -> PyretResult<PyretValue> {
         if args.len() == self.param_types.len() {
             for generic in self.generic_types.iter() {
                 let any = trove::global::Any::predicate();
@@ -46,15 +47,15 @@ impl PyretFunction {
             }
 
             for (arg, predicate) in args.iter().zip(self.param_types.iter()) {
-                if !predicate(Rc::clone(arg), Rc::clone(&self.context)) {
+                if !predicate(arg.clone(), Rc::clone(&self.context)) {
                     todo!("Incorrect argument type.")
                 }
             }
 
-            let value = (self.body)(args, Rc::clone(&self.context));
+            let value = (self.body)(&mut args.into_iter(), Rc::clone(&self.context));
 
             if let Ok(value) = &value {
-                if !(self.return_type)(Rc::clone(value), Rc::clone(&self.context)) {
+                if !(self.return_type)(value.clone(), Rc::clone(&self.context)) {
                     todo!("Incorrect return type.")
                 }
             }

@@ -4,22 +4,25 @@ use pyret_error::PyretResult;
 use pyret_number::{BigInt, BigRational, PyretNumber};
 
 use crate::{
-    value::context::{Context, Register},
+    value::{
+        context::{Context, Register},
+        PyretValueKind,
+    },
     PyretValue,
 };
 
 pub fn register(context: Rc<RefCell<Context>>) -> PyretResult<()> {
     let string = &context.register_builtin_type(
         "String",
-        Arc::new(|value, _context| matches!(value.as_ref(), PyretValue::String(..))),
+        Arc::new(|value, _context| matches!(*value.kind, PyretValueKind::String(..))),
     )?;
 
     context.register_builtin_function(
         "string-equal",
         [string, string],
         Rc::new(|args, _context| {
-            Ok(Rc::new(PyretValue::Boolean(
-                args[0].as_ref() == args[1].as_ref(),
+            Ok(PyretValue::from(PyretValueKind::Boolean(
+                args.next().unwrap().kind == args.next().unwrap().kind,
             )))
         }),
     )?;
@@ -28,13 +31,13 @@ pub fn register(context: Rc<RefCell<Context>>) -> PyretResult<()> {
         "string-contains",
         [string, string],
         Rc::new(|args, _context| {
-            let (PyretValue::String(haystack), PyretValue::String(needle)) =
-                (&args[0].as_ref(), &args[1].as_ref())
+            let (PyretValueKind::String(haystack), PyretValueKind::String(needle)) =
+                (&*args.next().unwrap().kind, &*args.next().unwrap().kind)
             else {
                 unreachable!()
             };
 
-            Ok(Rc::new(PyretValue::Boolean(haystack.contains(&**needle))))
+            Ok(PyretValue::from(PyretValueKind::Boolean(haystack.contains(&**needle))))
         }),
     )?;
 
@@ -42,13 +45,13 @@ pub fn register(context: Rc<RefCell<Context>>) -> PyretResult<()> {
         "string-append",
         [string, string],
         Rc::new(|args, _context| {
-            let (PyretValue::String(left), PyretValue::String(right)) =
-                (&args[0].as_ref(), &args[1].as_ref())
+            let (PyretValueKind::String(left), PyretValueKind::String(right)) =
+                (&*args.next().unwrap().kind, &*args.next().unwrap().kind)
             else {
                 unreachable!()
             };
 
-            Ok(Rc::new(PyretValue::String(
+            Ok(PyretValue::from(PyretValueKind::String(
                 format!("{left}{right}").into_boxed_str(),
             )))
         }),
@@ -58,11 +61,11 @@ pub fn register(context: Rc<RefCell<Context>>) -> PyretResult<()> {
         "string-length",
         [string],
         Rc::new(|args, _context| {
-            let PyretValue::String(string) = args[0].as_ref() else {
+            let PyretValueKind::String(string) = &*args.next().unwrap().kind else {
                 unreachable!()
             };
 
-            Ok(Rc::new(PyretValue::Number(PyretNumber::Exact(
+            Ok(PyretValue::from(PyretValueKind::Number(PyretNumber::Exact(
                 BigRational::from_integer(BigInt::from(string.len())),
             ))))
         }),

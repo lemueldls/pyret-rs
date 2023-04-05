@@ -20,7 +20,7 @@ impl PyretError {
         Self { kind, file_id }
     }
 
-    pub fn into_report(self, files: &dyn PyretGraph) -> Report {
+    pub fn into_report(self, files: &impl PyretGraph) -> Report {
         let file = files.get(self.file_id);
 
         let name = if let Some(mut labels) = self.kind.labels() {
@@ -63,7 +63,7 @@ pub enum PyretErrorKind {
     #[error("Pyret attempted to divide by zero")]
     DivideByZero {
         #[label("the denominator is zero")]
-        denominator: SourceSpan,
+        denominator: Option<SourceSpan>,
     },
 
     #[error("Pyret didn't understand the very end of your program")]

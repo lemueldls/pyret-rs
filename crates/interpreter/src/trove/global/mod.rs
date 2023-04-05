@@ -14,7 +14,7 @@ use crate::{
     ty,
     value::{
         context::{Context, Register},
-        PyretValue,
+        PyretValue, PyretValueKind,
     },
 };
 
@@ -22,7 +22,7 @@ ty!(Any, |_value, _context| true);
 
 pub fn register(context: Rc<RefCell<Context>>) -> PyretResult<()> {
     {
-        import_trove("constants", Rc::clone(&context))?;
+        Any::register(Rc::clone(&context))?;
 
         let any = &Any::predicate();
 
@@ -30,14 +30,14 @@ pub fn register(context: Rc<RefCell<Context>>) -> PyretResult<()> {
             "display",
             [any],
             Rc::new(|args, context| {
-                let value = &args[0];
+                let value = args.next().unwrap();
 
                 context
                     .borrow_mut()
                     .io
-                    .write(Output::Display(Rc::clone(value)));
+                    .write(Output::Display(value.clone()));
 
-                Ok(Rc::clone(value))
+                Ok(value)
             }),
         )?;
 
@@ -45,11 +45,14 @@ pub fn register(context: Rc<RefCell<Context>>) -> PyretResult<()> {
             "print",
             [any],
             Rc::new(|args, context| {
-                let value = &args[0];
+                let value = args.next().unwrap();
 
-                context.borrow_mut().io.write(Output::Print(to_repr(value)));
+                context
+                    .borrow_mut()
+                    .io
+                    .write(Output::Print(to_repr(&value)));
 
-                Ok(Rc::clone(value))
+                Ok(value)
             }),
         )?;
 
@@ -58,7 +61,7 @@ pub fn register(context: Rc<RefCell<Context>>) -> PyretResult<()> {
             [any],
             Rc::new(|args, _context| {
                 Err(PyretErrorKind::RaiseRuntime(
-                    args[0].to_string().into_boxed_str(),
+                    args.next().unwrap().to_string().into_boxed_str(),
                 ))
             }),
         )?;
@@ -70,14 +73,16 @@ pub fn register(context: Rc<RefCell<Context>>) -> PyretResult<()> {
     ops::register(Rc::clone(&context))?;
     string::register(Rc::clone(&context))?;
 
+    import_trove("constants", Rc::clone(&context))?;
+
     Ok(())
 }
 
-fn to_repr(value: &Rc<PyretValue>) -> Box<str> {
-    match value.as_ref() {
-        PyretValue::String(string) => string.clone(),
-        PyretValue::Function(..) => Box::from("<function>"),
-        PyretValue::Nothing => Box::from("nothing"),
+fn to_repr(value: &PyretValue) -> Box<str> {
+    match &*value.kind {
+        PyretValueKind::String(string) => string.clone(),
+        PyretValueKind::Function(..) => Box::from("<function>"),
+        PyretValueKind::Nothing => Box::from("nothing"),
         _ => format!("{value}").into_boxed_str(),
     }
 }
