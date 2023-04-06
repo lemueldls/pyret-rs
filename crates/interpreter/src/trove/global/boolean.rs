@@ -10,7 +10,7 @@ use crate::{
     PyretValue,
 };
 
-pub fn register(context: Rc<RefCell<Context>>) -> PyretResult<()> {
+pub fn register(context: Context) -> PyretResult<()> {
     ModBoolean::register(context)
 }
 
@@ -25,12 +25,10 @@ struct ModBoolean;
 impl ModBoolean {
     #[must_use]
     pub fn is_boolean(value: &Any) -> Boolean {
-        Boolean(
-            PyretValue::from(PyretValueKind::Boolean(matches!(
-                *value.kind,
-                PyretValueKind::Boolean(..)
-            ))),
-        )
+        Boolean(PyretValue::from(PyretValueKind::Boolean(matches!(
+            *value.kind,
+            PyretValueKind::Boolean(..)
+        ))))
     }
 
     #[must_use]

@@ -85,9 +85,7 @@ pub fn expand(item: TokenStream) -> TokenStream {
         #item_impl
 
         impl crate::trove::Trove for #ident {
-            fn register(context: Rc<RefCell<crate::Context>>) -> PyretResult<()> {
-                use crate::Register;
-
+            fn register(context: crate::Context) -> PyretResult<()> {
                 #(#tokens)*
 
                 Ok(())

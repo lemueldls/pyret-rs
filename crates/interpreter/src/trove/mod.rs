@@ -7,7 +7,7 @@ use pyret_error::PyretResult;
 use crate::value::context::Context;
 
 pub trait Trove {
-    fn register(context: Rc<RefCell<Context>>) -> PyretResult<()>;
+    fn register(context: Context) -> PyretResult<()>;
 }
 
 pub struct Module {
@@ -15,7 +15,7 @@ pub struct Module {
     pub exports: Vec<String>,
 }
 
-pub fn import_trove(name: &str, context: Rc<RefCell<Context>>) -> PyretResult<()> {
+pub fn import_trove(name: &str, context: Context) -> PyretResult<()> {
     match name {
         "global" => global::register(context),
         "constants" => trove!("constants", context),

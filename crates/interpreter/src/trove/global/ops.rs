@@ -5,7 +5,7 @@ use pyret_error::PyretResult;
 use super::Any;
 use crate::{ops, Context, Register};
 
-pub fn register(context: Rc<RefCell<Context>>) -> PyretResult<()> {
+pub fn register(context: Context) -> PyretResult<()> {
     let any = &Any::predicate();
 
     context.register_builtin_function(

@@ -1,4 +1,9 @@
-use std::{cell::RefCell, rc::Rc, sync::Arc};
+use std::{
+    cell::{Ref, RefCell},
+    ops::Deref,
+    rc::Rc,
+    sync::Arc,
+};
 
 use pyret_error::PyretErrorKind;
 use pyret_lexer::{ast::IdentifierExpression, Token};
@@ -53,13 +58,13 @@ pub enum Declaration {
 }
 
 #[derive(Default)]
-pub struct Context {
+pub struct Register {
     pub io: Io,
     pub declarations: Vec<RegisteredDeclaration>,
     depth_of_scope: Option<usize>,
 }
 
-impl Context {
+impl Register {
     fn get_declaration(&mut self, name: &str) -> Option<&mut Declaration> {
         self.declarations
             .iter_mut()
@@ -67,8 +72,8 @@ impl Context {
             .rfind(|(depth, decl)| {
                 name == &*decl.name
                     && match self.depth_of_scope {
-                        None => true,
                         Some(depth_of_scope) if depth_of_scope > *depth => true,
+                        None => true,
                         _ => false,
                     }
             })
@@ -76,8 +81,11 @@ impl Context {
     }
 }
 
-impl Register for Rc<RefCell<Context>> {
-    fn register_builtin_expr(&self, name: &'static str, value: PyretValue) {
+#[derive(Default, Clone)]
+pub struct Context(Rc<RefCell<Register>>);
+
+impl Context {
+    pub fn register_builtin_expr(&self, name: &'static str, value: PyretValue) {
         self.borrow_mut()
             .declarations
             .push(RegisteredDeclaration::new_value(
@@ -87,7 +95,12 @@ impl Register for Rc<RefCell<Context>> {
             ));
     }
 
-    fn register_local_expr(&self, name: Box<str>, value: Option<PyretValue>, scope_level: usize) {
+    pub fn register_local_expr(
+        &self,
+        name: Box<str>,
+        value: Option<PyretValue>,
+        scope_level: usize,
+    ) {
         if let Some(declaration) = self.borrow_mut().get_declaration(&name) {
             if let Declaration::Value(shadowing) = &declaration {
                 if let Some(shadowing) = shadowing {
@@ -123,7 +136,7 @@ impl Register for Rc<RefCell<Context>> {
         self.borrow_mut().declarations.push(declaration);
     }
 
-    fn register_builtin_function<const N: usize>(
+    pub fn register_builtin_function<const N: usize>(
         &self,
         name: &'static str,
         param_types: [&TypePredicate; N],
@@ -135,23 +148,23 @@ impl Register for Rc<RefCell<Context>> {
             .declarations
             .push(RegisteredDeclaration::new_value(
                 Box::from(name),
-                Some(PyretValueScoped::new_builtin(
-                    PyretValue::from(PyretValueKind::Function(PyretFunction::new(
+                Some(PyretValueScoped::new_builtin(PyretValue::from(
+                    PyretValueKind::Function(PyretFunction::new(
                         Box::from(name),
                         Box::from_iter([]),
                         Box::from_iter(param_types.map(Arc::clone)),
                         return_type,
                         body,
-                        Self::clone(self),
-                    ))),
-                )),
+                        self.clone(),
+                    )),
+                ))),
                 0,
             ));
 
         Ok(())
     }
 
-    fn register_function(
+    pub fn register_function(
         &self,
         name: Box<str>,
         param_types: Box<[TypePredicate]>,
@@ -162,23 +175,23 @@ impl Register for Rc<RefCell<Context>> {
             .declarations
             .push(RegisteredDeclaration::new_value(
                 name.clone(),
-                Some(PyretValueScoped::new_builtin(
-                    PyretValue::from(PyretValueKind::Function(PyretFunction::new(
+                Some(PyretValueScoped::new_builtin(PyretValue::from(
+                    PyretValueKind::Function(PyretFunction::new(
                         name,
                         Box::from_iter([]),
                         param_types,
                         return_type,
                         body,
                         Self::clone(self),
-                    ))),
-                )),
+                    )),
+                ))),
                 0,
             ));
 
         Ok(())
     }
 
-    fn register_local_function(
+    pub fn register_local_function(
         &self,
         name: Box<str>,
         param_types: &[Box<str>],
@@ -202,23 +215,23 @@ impl Register for Rc<RefCell<Context>> {
             .declarations
             .push(RegisteredDeclaration::new_value(
                 name.clone(),
-                Some(PyretValueScoped::new_local(
-                    PyretValue::from(PyretValueKind::Function(PyretFunction::new(
+                Some(PyretValueScoped::new_local(PyretValue::from(
+                    PyretValueKind::Function(PyretFunction::new(
                         name,
                         Box::from_iter([]),
                         param_types,
                         return_type,
                         body,
                         Self::clone(self),
-                    ))),
-                )),
+                    )),
+                ))),
                 scope_level,
             ));
 
         Ok(())
     }
 
-    fn register_builtin_type(
+    pub fn register_builtin_type(
         &self,
         name: &'static str,
         predicate: TypePredicate,
@@ -234,7 +247,12 @@ impl Register for Rc<RefCell<Context>> {
         Ok(predicate)
     }
 
-    fn register_local_type(&self, name: Box<str>, predicate: TypePredicate, scope_level: usize) {
+    pub fn register_local_type(
+        &self,
+        name: Box<str>,
+        predicate: TypePredicate,
+        scope_level: usize,
+    ) {
         if let Some(declaration) = self.borrow_mut().get_declaration(&name) {
             if let Declaration::Type(_predicate) = &declaration {
                 todo!(
@@ -254,7 +272,7 @@ impl Register for Rc<RefCell<Context>> {
             ));
     }
 
-    fn get_value(&self, name: &str) -> PyretResult<PyretValueScoped> {
+    pub fn get_value(&self, name: &str) -> PyretResult<PyretValueScoped> {
         if let Some(declaration) = self.borrow_mut().get_declaration(name) {
             if let Declaration::Value(value) = declaration {
                 if let Some(value_scoped) = value {
@@ -274,7 +292,7 @@ impl Register for Rc<RefCell<Context>> {
         }
     }
 
-    fn get_type(&self, name: &str) -> PyretResult<Option<TypePredicate>> {
+    pub fn get_type(&self, name: &str) -> PyretResult<Option<TypePredicate>> {
         self.borrow_mut()
             .get_declaration(name)
             .map(|declaration| {
@@ -287,7 +305,7 @@ impl Register for Rc<RefCell<Context>> {
             .transpose()
     }
 
-    fn call_function(
+    pub fn call_function(
         &self,
         ident: IdentifierExpression,
         args: Vec<PyretValue>,
@@ -337,50 +355,17 @@ impl Register for Rc<RefCell<Context>> {
         Ok(result)
     }
 
-    fn pop_scope(&self, scope_level: usize) {
+    pub fn pop_scope(&self, scope_level: usize) {
         self.borrow_mut()
             .declarations
             .retain(|registered| registered.scope_level <= scope_level);
     }
 }
 
-pub trait Register {
-    fn register_builtin_expr(&self, name: &'static str, value: PyretValue);
-    fn register_local_expr(&self, name: Box<str>, value: Option<PyretValue>, scope_level: usize);
-    fn register_builtin_function<const N: usize>(
-        &self,
-        name: &'static str,
-        param_types: [&TypePredicate; N],
-        body: FunctionSignature,
-    ) -> PyretResult<()>;
-    fn register_function(
-        &self,
-        name: Box<str>,
-        param_types: Box<[TypePredicate]>,
-        return_type: TypePredicate,
-        body: FunctionSignature,
-    ) -> PyretResult<()>;
-    fn register_local_function(
-        &self,
-        name: Box<str>,
-        param_types: &[Box<str>],
-        return_type: &str,
-        body: FunctionSignature,
-        scope_level: usize,
-    ) -> PyretResult<()>;
-    fn register_builtin_type(
-        &self,
-        name: &'static str,
-        predicate: TypePredicate,
-    ) -> PyretResult<TypePredicate>;
-    fn register_local_type(&self, name: Box<str>, predicate: TypePredicate, scope_level: usize);
-    fn get_value(&self, name: &str) -> PyretResult<PyretValueScoped>;
-    fn get_type(&self, name: &str) -> PyretResult<Option<TypePredicate>>;
-    fn call_function(
-        &self,
-        ident: IdentifierExpression,
-        args: Vec<PyretValue>,
-        scope_level: usize,
-    ) -> PyretResult<PyretValue>;
-    fn pop_scope(&self, scope_level: usize);
+impl Deref for Context {
+    type Target = Rc<RefCell<Register>>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
 }

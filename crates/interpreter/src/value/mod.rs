@@ -8,7 +8,7 @@ use pyret_number::PyretNumber;
 
 use crate::Context;
 
-pub type TypePredicate = Arc<dyn Fn(PyretValue, Rc<RefCell<Context>>) -> bool + Send + Sync>;
+pub type TypePredicate = Arc<dyn Fn(PyretValue, Context) -> bool + Send + Sync>;
 
 #[derive(Clone)]
 pub struct PyretValueScoped {

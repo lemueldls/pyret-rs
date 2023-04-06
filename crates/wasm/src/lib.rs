@@ -167,7 +167,7 @@ fn js_to_pyret(value: JsValue) -> PyretValue {
                 },
             );
 
-            let context = Rc::new(RefCell::new(Context::default()));
+            let context = Context::default();
 
             PyretValueKind::Function(PyretFunction::new(
                 name,

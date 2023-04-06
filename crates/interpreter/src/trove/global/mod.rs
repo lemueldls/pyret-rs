@@ -20,9 +20,9 @@ use crate::{
 
 ty!(Any, |_value, _context| true);
 
-pub fn register(context: Rc<RefCell<Context>>) -> PyretResult<()> {
+pub fn register(context: Context) -> PyretResult<()> {
     {
-        Any::register(Rc::clone(&context))?;
+        Any::register(context.clone())?;
 
         let any = &Any::predicate();
 
@@ -67,13 +67,13 @@ pub fn register(context: Rc<RefCell<Context>>) -> PyretResult<()> {
         )?;
     }
 
-    boolean::register(Rc::clone(&context))?;
-    nothing::register(Rc::clone(&context))?;
-    number::register(Rc::clone(&context))?;
-    ops::register(Rc::clone(&context))?;
-    string::register(Rc::clone(&context))?;
+    boolean::register(context.clone())?;
+    nothing::register(context.clone())?;
+    number::register(context.clone())?;
+    ops::register(context.clone())?;
+    string::register(context.clone())?;
 
-    import_trove("constants", Rc::clone(&context))?;
+    import_trove("constants", context.clone())?;
 
     Ok(())
 }

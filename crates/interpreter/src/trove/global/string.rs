@@ -11,7 +11,7 @@ use crate::{
     PyretValue,
 };
 
-pub fn register(context: Rc<RefCell<Context>>) -> PyretResult<()> {
+pub fn register(context: Context) -> PyretResult<()> {
     let string = &context.register_builtin_type(
         "String",
         Arc::new(|value, _context| matches!(*value.kind, PyretValueKind::String(..))),
@@ -37,7 +37,9 @@ pub fn register(context: Rc<RefCell<Context>>) -> PyretResult<()> {
                 unreachable!()
             };
 
-            Ok(PyretValue::from(PyretValueKind::Boolean(haystack.contains(&**needle))))
+            Ok(PyretValue::from(PyretValueKind::Boolean(
+                haystack.contains(&**needle),
+            )))
         }),
     )?;
 
@@ -65,9 +67,9 @@ pub fn register(context: Rc<RefCell<Context>>) -> PyretResult<()> {
                 unreachable!()
             };
 
-            Ok(PyretValue::from(PyretValueKind::Number(PyretNumber::Exact(
-                BigRational::from_integer(BigInt::from(string.len())),
-            ))))
+            Ok(PyretValue::from(PyretValueKind::Number(
+                PyretNumber::Exact(BigRational::from_integer(BigInt::from(string.len()))),
+            )))
         }),
     )?;
 

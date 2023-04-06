@@ -13,7 +13,7 @@ use crate::{
     PyretResult, PyretValue,
 };
 
-pub fn register(context: Rc<RefCell<Context>>) -> PyretResult<()> {
+pub fn register(context: Context) -> PyretResult<()> {
     let any = &Any::predicate();
 
     let number = &context.register_builtin_type(
@@ -381,9 +381,9 @@ pub fn register(context: Rc<RefCell<Context>>) -> PyretResult<()> {
         "num-is-integer",
         [number],
         Rc::new(|args, _context| match &*args.next().unwrap().kind {
-            PyretValueKind::Number(number) => {
-                Ok(PyretValue::from(PyretValueKind::Boolean(number.is_integer())))
-            }
+            PyretValueKind::Number(number) => Ok(PyretValue::from(PyretValueKind::Boolean(
+                number.is_integer(),
+            ))),
             _ => unreachable!(),
         }),
     )?;
@@ -392,9 +392,9 @@ pub fn register(context: Rc<RefCell<Context>>) -> PyretResult<()> {
         "num-is-rational",
         [number],
         Rc::new(|args, _context| match &*args.next().unwrap().kind {
-            PyretValueKind::Number(number) => {
-                Ok(PyretValue::from(PyretValueKind::Boolean(number.is_rational())))
-            }
+            PyretValueKind::Number(number) => Ok(PyretValue::from(PyretValueKind::Boolean(
+                number.is_rational(),
+            ))),
             _ => unreachable!(),
         }),
     )?;
@@ -403,9 +403,9 @@ pub fn register(context: Rc<RefCell<Context>>) -> PyretResult<()> {
         "num-is-positive",
         [number],
         Rc::new(|args, _context| match &*args.next().unwrap().kind {
-            PyretValueKind::Number(number) => {
-                Ok(PyretValue::from(PyretValueKind::Boolean(number.is_positive())))
-            }
+            PyretValueKind::Number(number) => Ok(PyretValue::from(PyretValueKind::Boolean(
+                number.is_positive(),
+            ))),
             _ => unreachable!(),
         }),
     )?;
@@ -414,9 +414,9 @@ pub fn register(context: Rc<RefCell<Context>>) -> PyretResult<()> {
         "num-is-negative",
         [number],
         Rc::new(|args, _context| match &*args.next().unwrap().kind {
-            PyretValueKind::Number(number) => {
-                Ok(PyretValue::from(PyretValueKind::Boolean(number.is_negative())))
-            }
+            PyretValueKind::Number(number) => Ok(PyretValue::from(PyretValueKind::Boolean(
+                number.is_negative(),
+            ))),
             _ => unreachable!(),
         }),
     )?;
@@ -425,9 +425,9 @@ pub fn register(context: Rc<RefCell<Context>>) -> PyretResult<()> {
         "num-is-non-positive",
         [number],
         Rc::new(|args, _context| match &*args.next().unwrap().kind {
-            PyretValueKind::Number(number) => {
-                Ok(PyretValue::from(PyretValueKind::Boolean(number.is_non_positive())))
-            }
+            PyretValueKind::Number(number) => Ok(PyretValue::from(PyretValueKind::Boolean(
+                number.is_non_positive(),
+            ))),
             _ => unreachable!(),
         }),
     )?;
@@ -436,9 +436,9 @@ pub fn register(context: Rc<RefCell<Context>>) -> PyretResult<()> {
         "num-is-non-negative",
         [number],
         Rc::new(|args, _context| match &*args.next().unwrap().kind {
-            PyretValueKind::Number(number) => {
-                Ok(PyretValue::from(PyretValueKind::Boolean(number.is_non_negative())))
-            }
+            PyretValueKind::Number(number) => Ok(PyretValue::from(PyretValueKind::Boolean(
+                number.is_non_negative(),
+            ))),
             _ => unreachable!(),
         }),
     )?;
@@ -447,9 +447,9 @@ pub fn register(context: Rc<RefCell<Context>>) -> PyretResult<()> {
         "num-to-string",
         [number],
         Rc::new(|args, _context| match &*args.next().unwrap().kind {
-            PyretValueKind::Number(number) => {
-                Ok(PyretValue::from(PyretValueKind::String(number.to_string().into_boxed_str())))
-            }
+            PyretValueKind::Number(number) => Ok(PyretValue::from(PyretValueKind::String(
+                number.to_string().into_boxed_str(),
+            ))),
             _ => unreachable!(),
         }),
     )?;
@@ -507,12 +507,10 @@ struct ModNumber;
 #[module]
 impl ModNumber {
     pub fn is_number(value: &Number) -> Boolean {
-        Boolean(
-            PyretValue::from(PyretValueKind::Boolean(matches!(
-                *value.kind,
-                PyretValueKind::Number(..)
-            ))),
-        )
+        Boolean(PyretValue::from(PyretValueKind::Boolean(matches!(
+            *value.kind,
+            PyretValueKind::Number(..)
+        ))))
     }
 
     pub fn num_max(left: Number, right: Number) -> PyretResult<Number> {

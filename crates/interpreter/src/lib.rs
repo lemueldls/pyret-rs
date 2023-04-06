@@ -33,7 +33,7 @@ pub struct TestResult {
 
 pub struct Interpreter<G: PyretGraph> {
     pub graph: G,
-    pub context: Rc<RefCell<Context>>,
+    pub context: Context,
     pub provide_values: ast::ProvideValues,
     pub provide_types: ast::ProvideTypes,
     scope_level: usize,
@@ -44,7 +44,7 @@ impl<G: PyretGraph> Interpreter<G> {
     pub fn new(graph: G) -> Self {
         Self {
             graph,
-            context: Rc::new(RefCell::new(Context::default())),
+            context: Context::default(),
             provide_values: ast::ProvideValues::Identifiers(HashMap::new()),
             provide_types: ast::ProvideTypes::Wildcard,
             scope_level: 0,
@@ -52,7 +52,7 @@ impl<G: PyretGraph> Interpreter<G> {
     }
 
     pub fn import_trove(&mut self, name: &str) -> PyretResult<()> {
-        trove::import_trove(name, Rc::clone(&self.context))?;
+        trove::import_trove(name, self.context.clone())?;
 
         Ok(())
     }
@@ -357,7 +357,7 @@ impl<G: PyretGraph> Interpreter<G> {
             } => match name {
                 ast::IdentifierAnnotation::Name(ident) => {
                     if let Some(r#type) = self.context.get_type(&ident.name)? {
-                        if !r#type(value, Rc::clone(&self.context)) {
+                        if !r#type(value, self.context.clone()) {
                             todo!("Type error: {annotation:?}")
                         }
                     }

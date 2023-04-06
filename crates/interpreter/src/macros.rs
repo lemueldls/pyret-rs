@@ -13,10 +13,8 @@ macro_rules! ty {
             }
 
             pub fn register(
-                context: ::std::rc::Rc<::std::cell::RefCell<$crate::value::context::Context>>,
+                context: $crate::value::context::Context,
             ) -> $crate::PyretResult<$crate::value::TypePredicate> {
-                use $crate::value::context::Register;
-
                 context.register_builtin_type(stringify!($ident), ::std::sync::Arc::new($predicate))
             }
         }
