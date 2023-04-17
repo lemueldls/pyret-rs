@@ -1,10 +1,11 @@
-use std::{cell::RefCell, rc::Rc};
+use std::rc::Rc;
 
 use pyret_error::PyretResult;
 
 use super::Any;
-use crate::{ops, Context, Register};
+use crate::{ops, Context};
 
+#[inline]
 pub fn register(context: Context) -> PyretResult<()> {
     let any = &Any::predicate();
 

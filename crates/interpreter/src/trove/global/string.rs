@@ -1,16 +1,14 @@
-use std::{cell::RefCell, rc::Rc, sync::Arc};
+use std::{rc::Rc, sync::Arc};
 
 use pyret_error::PyretResult;
 use pyret_number::{BigInt, BigRational, PyretNumber};
 
 use crate::{
-    value::{
-        context::{Context, Register},
-        PyretValueKind,
-    },
+    value::{context::Context, PyretValueKind},
     PyretValue,
 };
 
+#[inline]
 pub fn register(context: Context) -> PyretResult<()> {
     let string = &context.register_builtin_type(
         "String",

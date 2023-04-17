@@ -1,4 +1,4 @@
-use std::{cell::RefCell, cmp::Ordering, rc::Rc, sync::Arc};
+use std::{cmp::Ordering, rc::Rc, sync::Arc};
 
 use pyret_error::PyretErrorKind;
 use pyret_number::{PyretNumber, Signed};
@@ -6,13 +6,11 @@ use pyret_number::{PyretNumber, Signed};
 use super::{boolean::Boolean, Any};
 use crate::{
     ty,
-    value::{
-        context::{Context, Register},
-        PyretValueKind,
-    },
+    value::{context::Context, PyretValueKind},
     PyretResult, PyretValue,
 };
 
+#[inline]
 pub fn register(context: Context) -> PyretResult<()> {
     let any = &Any::predicate();
 
@@ -506,6 +504,7 @@ struct ModNumber;
 
 #[module]
 impl ModNumber {
+    #[inline]
     pub fn is_number(value: &Number) -> Boolean {
         Boolean(PyretValue::from(PyretValueKind::Boolean(matches!(
             *value.kind,
@@ -513,6 +512,7 @@ impl ModNumber {
         ))))
     }
 
+    #[inline]
     pub fn num_max(left: Number, right: Number) -> PyretResult<Number> {
         let rc_left = left.0;
         let rc_right = right.0;

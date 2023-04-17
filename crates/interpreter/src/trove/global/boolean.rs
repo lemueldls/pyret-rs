@@ -1,4 +1,4 @@
-use std::{cell::RefCell, rc::Rc};
+use std::rc::Rc;
 
 use pyret_error::PyretResult;
 
@@ -10,6 +10,7 @@ use crate::{
     PyretValue,
 };
 
+#[inline]
 pub fn register(context: Context) -> PyretResult<()> {
     ModBoolean::register(context)
 }
@@ -23,6 +24,7 @@ struct ModBoolean;
 
 #[module]
 impl ModBoolean {
+    #[inline]
     #[must_use]
     pub fn is_boolean(value: &Any) -> Boolean {
         Boolean(PyretValue::from(PyretValueKind::Boolean(matches!(
@@ -31,6 +33,7 @@ impl ModBoolean {
         ))))
     }
 
+    #[inline]
     #[must_use]
     pub fn not(value: &Boolean) -> Boolean {
         match *value.kind {

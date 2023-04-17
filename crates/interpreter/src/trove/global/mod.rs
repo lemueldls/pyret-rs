@@ -4,7 +4,7 @@ pub mod number;
 pub mod ops;
 pub mod string;
 
-use std::{cell::RefCell, rc::Rc};
+use std::rc::Rc;
 
 use pyret_error::{PyretErrorKind, PyretResult};
 
@@ -12,14 +12,12 @@ use super::import_trove;
 use crate::{
     io::Output,
     ty,
-    value::{
-        context::{Context, Register},
-        PyretValue, PyretValueKind,
-    },
+    value::{context::Context, PyretValue, PyretValueKind},
 };
 
 ty!(Any, |_value, _context| true);
 
+#[inline]
 pub fn register(context: Context) -> PyretResult<()> {
     {
         Any::register(context.clone())?;
@@ -73,7 +71,7 @@ pub fn register(context: Context) -> PyretResult<()> {
     ops::register(context.clone())?;
     string::register(context.clone())?;
 
-    import_trove("constants", context.clone())?;
+    import_trove("constants", context)?;
 
     Ok(())
 }
